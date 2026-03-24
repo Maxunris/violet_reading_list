@@ -17,7 +17,6 @@ const state = {
   library: null,
   folderId: DEFAULT_FOLDER_ID,
   activeView: 'folder',
-  query: '',
   tagLibrarySearch: '',
   tagManagerOpen: false,
   editingEntryId: null,
@@ -30,8 +29,6 @@ const elements = {
   folderName: document.getElementById('folder-name'),
   folderList: document.getElementById('folder-list'),
   viewList: document.getElementById('view-list'),
-  searchQuery: document.getElementById('search-query'),
-  clearFilters: document.getElementById('clear-filters'),
   manageTags: document.getElementById('manage-tags'),
   entryList: document.getElementById('entry-list'),
   emptyState: document.getElementById('empty-state'),
@@ -120,7 +117,6 @@ function matchText(haystacks, query) {
 
 function getFilteredEntries() {
   const entries = getEntries(state.library);
-  const query = state.query.trim().toLowerCase();
 
   return entries
     .filter(entry => {
@@ -134,9 +130,6 @@ function getFilteredEntries() {
         return false;
       }
       if (state.activeView === 'folder' && entry.folderId !== state.folderId) {
-        return false;
-      }
-      if (!matchText([entry.title, entry.description, entry.url, entry.domain], query)) {
         return false;
       }
       return true;
@@ -548,19 +541,6 @@ elements.folderForm.addEventListener('submit', async event => {
   showStatus('Folder created.', 'success');
 });
 
-elements.searchQuery.addEventListener('input', event => {
-  state.query = event.target.value;
-  render();
-});
-
-elements.clearFilters.addEventListener('click', () => {
-  state.query = '';
-  state.activeView = 'folder';
-  elements.searchQuery.value = '';
-  render();
-  showStatus('Filters cleared.');
-});
-
 document.querySelectorAll('[data-toggle-filter]').forEach(button => {
   button.addEventListener('click', () => {
     const nextView = button.dataset.toggleFilter;
@@ -641,7 +621,6 @@ window.addEventListener('click', event => {
 });
 
 window.addEventListener('keydown', event => {
-  const activeTag = document.activeElement?.tagName || '';
   if (event.key === 'Escape') {
     if (!elements.entryModal.hidden) {
       closeEntryEditor();
@@ -649,11 +628,6 @@ window.addEventListener('keydown', event => {
     if (state.tagManagerOpen) {
       closeTagManager();
     }
-  }
-
-  if (event.key === '/' && !['INPUT', 'TEXTAREA', 'SELECT'].includes(activeTag)) {
-    event.preventDefault();
-    elements.searchQuery.focus();
   }
 });
 

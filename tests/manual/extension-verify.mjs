@@ -352,6 +352,17 @@ try {
     await popup.close();
   });
 
+  await record('search block is removed from popup header', async () => {
+    const popup = await preparePopup(createSeedLibrary());
+    if (await popup.locator('#search-query').count() !== 0) {
+      throw new Error('search input still rendered');
+    }
+    if (await popup.locator('#clear-filters').count() !== 0) {
+      throw new Error('clear filters button still rendered');
+    }
+    await popup.close();
+  });
+
   await record('saved entries show at least four visible cards in the right pane', async () => {
     const popup = await preparePopup(createLibraryWithVisibleEntries());
     await popup.waitForSelector('.entry-card');
@@ -576,19 +587,6 @@ try {
     await popup.close();
   });
 
-  await record('search by text narrows results', async () => {
-    const popup = await preparePopup(createLibraryWithTagsAndFlags());
-    await popup.waitForSelector('.entry-card');
-    await popup.locator('#search-query').fill('Updated description');
-    if (await popup.locator('.entry-card').count() !== 1) throw new Error('text filter removed expected entry');
-    await popup.locator('#search-query').fill('missing words');
-    await popup.waitForTimeout(150);
-    if (await popup.locator('.entry-card').count() !== 0) throw new Error('text filter did not empty results');
-    await popup.locator('#clear-filters').dispatchEvent('click');
-    if (await popup.locator('.entry-card').count() !== 1) throw new Error('clear filters did not restore entry');
-    await popup.close();
-  });
-
   await record('favorites, pinned and unread views behave correctly', async () => {
     const popup = await preparePopup(createLibraryWithTagsAndFlags());
     await popup.waitForSelector('.entry-card');
@@ -639,12 +637,9 @@ try {
     await popup.close();
   });
 
-  await record('keyboard shortcuts focus search and close entry modal', async () => {
+  await record('keyboard shortcut escape closes entry modal', async () => {
     const popup = await preparePopup(createSeedLibrary());
     await popup.waitForSelector('.entry-card');
-    await popup.keyboard.press('/');
-    const focusedId = await popup.evaluate(() => document.activeElement?.id || '');
-    if (focusedId !== 'search-query') throw new Error(`expected search-query focus, got ${focusedId}`);
     await popup.locator('.entry-card .edit-button').first().dispatchEvent('click');
     await popup.keyboard.press('Escape');
     const hidden = await popup.locator('#entry-modal').evaluate(node => node.hidden);

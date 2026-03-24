@@ -41,15 +41,6 @@
           </div>
         </header>
 
-        <section class="search-panel">
-          <label class="search-field">
-            <span>Search</span>
-            <input id="search-query" type="search" placeholder="Search title, description, URL">
-          </label>
-          <button id="clear-filters" class="ghost-action" type="button">Clear filters</button>
-          <button id="manage-tags" class="ghost-action" type="button">Manage tags</button>
-        </section>
-
         <section class="filter-panel">
           <div class="filter-group">
             <span class="filter-label">States</span>
@@ -57,6 +48,7 @@
             <button class="pill-filter" data-toggle-filter="pinned" type="button">Pinned</button>
             <button class="pill-filter" data-toggle-filter="unread" type="button">Unread</button>
           </div>
+          <button id="manage-tags" class="ghost-action" type="button">Manage tags</button>
         </section>
 
         <section id="tag-manager-panel" class="tag-manager-panel" hidden>
@@ -81,7 +73,7 @@
         <section class="entry-panel">
           <div id="empty-state" class="empty-state" hidden>
             <h3>Nothing matches this view</h3>
-            <p>Try another folder, clear the filters, or save the current page.</p>
+            <p>Try another folder, switch the current view, or save the current page.</p>
           </div>
           <div id="entry-list" class="entry-list"></div>
         </section>

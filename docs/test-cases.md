@@ -8,20 +8,20 @@
 2. The entry editor modal is hidden on first render.
 3. The popup root keeps its fixed extension width instead of collapsing to a narrow viewport.
 4. The compact popup layout keeps the `Save Current Tab` action visible without horizontal overflow.
-5. The right pane shows at least four saved links without requiring an initial scroll.
-6. The left sidebar scrolls independently from the saved-links pane.
-7. The popup always starts in the `Inbox` folder.
-8. Folder creation and inline rename update the sidebar correctly.
-9. Folder names stay unique on both create and rename flows.
-10. Tag creation, inline rename, and deletion work through the tag manager panel.
-11. The tag manager closes cleanly before entry editing and can be closed explicitly from its close button.
-12. Entry editing updates folder assignment, tags, favorite state, pinned state, read state, and description.
-13. Long entry titles still leave the action buttons visible and clickable.
-14. Free-text search narrows and restores results correctly.
+5. The old search block is removed from the popup header.
+6. The right pane shows at least four saved links without requiring an initial scroll.
+7. The left sidebar scrolls independently from the saved-links pane.
+8. The popup always starts in the `Inbox` folder.
+9. Folder creation and inline rename update the sidebar correctly.
+10. Folder names stay unique on both create and rename flows.
+11. Tag creation, inline rename, and deletion work through the tag manager panel.
+12. The tag manager closes cleanly before entry editing and can be closed explicitly from its close button.
+13. Entry editing updates folder assignment, tags, favorite state, pinned state, read state, and description.
+14. Long entry titles still leave the action buttons visible and clickable.
 15. Quick views for favorites, pinned, and unread entries show the expected subset.
 16. Deleting a folder reassigns its entries back to `Inbox`.
 17. Options export and replace import serialize and restore library state correctly.
-18. Keyboard shortcuts focus the main search input with `/` and close the entry editor with `Escape`.
+18. `Escape` closes the entry editor cleanly.
 19. The popup toolbar no longer renders the backup action.
 20. The entry editor close button hides the modal cleanly.
 21. The content script returns page metadata for a supported page and the background script can retrieve it.

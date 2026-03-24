@@ -17,9 +17,12 @@ const state = {
   library: null,
   folderId: DEFAULT_FOLDER_ID,
   activeView: 'folder',
+  query: '',
+  searchOpen: false,
   tagLibrarySearch: '',
   tagManagerOpen: false,
   editingEntryId: null,
+  editingEntryTagNames: [],
   editingFolderId: null,
   editingTagId: null
 };
@@ -29,6 +32,10 @@ const elements = {
   folderName: document.getElementById('folder-name'),
   folderList: document.getElementById('folder-list'),
   viewList: document.getElementById('view-list'),
+  toggleSearch: document.getElementById('toggle-search'),
+  searchPanel: document.getElementById('search-panel'),
+  searchQuery: document.getElementById('search-query'),
+  clearSearch: document.getElementById('clear-search'),
   manageTags: document.getElementById('manage-tags'),
   entryList: document.getElementById('entry-list'),
   emptyState: document.getElementById('empty-state'),
@@ -42,7 +49,11 @@ const elements = {
   entryTitle: document.getElementById('entry-title'),
   entryDescription: document.getElementById('entry-description'),
   entryFolder: document.getElementById('entry-folder'),
-  entryTags: document.getElementById('entry-tags'),
+  entryTagSelect: document.getElementById('entry-tag-select'),
+  entryAddTag: document.getElementById('entry-add-tag'),
+  entryNewTag: document.getElementById('entry-new-tag'),
+  entryCreateTag: document.getElementById('entry-create-tag'),
+  entrySelectedTags: document.getElementById('entry-selected-tags'),
   entryFavorite: document.getElementById('entry-favorite'),
   entryPinned: document.getElementById('entry-pinned'),
   entryRead: document.getElementById('entry-read'),
@@ -95,15 +106,22 @@ function setSelectedFolder(folderId) {
   state.activeView = 'folder';
 }
 
-function escapeTagList(tagNames) {
-  return tagNames.join(', ');
+function normalizeTagName(value) {
+  return (value ?? '').trim().replace(/\s+/g, ' ').slice(0, 32);
 }
 
-function parseTagInput(rawValue) {
-  return rawValue
-    .split(',')
-    .map(value => value.trim())
-    .filter(Boolean);
+function resolveCanonicalTagName(rawName) {
+  const normalized = normalizeTagName(rawName);
+  if (!normalized) {
+    return '';
+  }
+
+  const existingTag = getTags(state.library).find(tag => tag.name.toLowerCase() === normalized.toLowerCase());
+  return existingTag ? existingTag.name : normalized;
+}
+
+function hasSelectedTagName(name) {
+  return state.editingEntryTagNames.some(tagName => tagName.toLowerCase() === name.toLowerCase());
 }
 
 function matchText(haystacks, query) {
@@ -117,6 +135,7 @@ function matchText(haystacks, query) {
 
 function getFilteredEntries() {
   const entries = getEntries(state.library);
+  const query = state.query.trim().toLowerCase();
 
   return entries
     .filter(entry => {
@@ -130,6 +149,9 @@ function getFilteredEntries() {
         return false;
       }
       if (state.activeView === 'folder' && entry.folderId !== state.folderId) {
+        return false;
+      }
+      if (!matchText([entry.title, entry.description, entry.url, entry.domain], query)) {
         return false;
       }
       return true;
@@ -234,6 +256,11 @@ function renderFilterButtons() {
   });
 }
 
+function renderSearchPanel() {
+  elements.searchPanel.hidden = !state.searchOpen;
+  elements.toggleSearch.classList.toggle('active', state.searchOpen);
+}
+
 function renderTagManagerPanel() {
   elements.tagManagerPanel.hidden = !state.tagManagerOpen;
   elements.manageTags.textContent = state.tagManagerOpen ? 'Hide tags' : 'Manage tags';
@@ -245,6 +272,57 @@ function createBadge(label, className = '') {
   badge.className = `badge ${className}`.trim();
   badge.textContent = label;
   return badge;
+}
+
+function removeEditingTagName(name) {
+  state.editingEntryTagNames = state.editingEntryTagNames.filter(tagName => tagName.toLowerCase() !== name.toLowerCase());
+  renderEntryTagEditor();
+}
+
+function addEditingTagName(rawName) {
+  const canonicalName = resolveCanonicalTagName(rawName);
+  if (!canonicalName) {
+    return false;
+  }
+  if (hasSelectedTagName(canonicalName)) {
+    showStatus('Tag already selected.', 'error');
+    return false;
+  }
+  state.editingEntryTagNames = [...state.editingEntryTagNames, canonicalName];
+  renderEntryTagEditor();
+  return true;
+}
+
+function renderEntryTagEditor() {
+  const selectedTagNames = state.editingEntryTagNames;
+  const selectedLookup = new Set(selectedTagNames.map(name => name.toLowerCase()));
+
+  elements.entryTagSelect.innerHTML = '';
+  const placeholder = document.createElement('option');
+  placeholder.value = '';
+  placeholder.textContent = 'Choose an existing tag';
+  elements.entryTagSelect.appendChild(placeholder);
+
+  getTags(state.library)
+    .filter(tag => !selectedLookup.has(tag.name.toLowerCase()))
+    .forEach(tag => {
+      const option = document.createElement('option');
+      option.value = tag.name;
+      option.textContent = tag.name;
+      elements.entryTagSelect.appendChild(option);
+    });
+
+  elements.entrySelectedTags.innerHTML = '';
+  selectedTagNames.forEach(tagName => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'tag-chip selected';
+    button.textContent = `#${tagName} ×`;
+    button.addEventListener('click', () => {
+      removeEditingTagName(tagName);
+    });
+    elements.entrySelectedTags.appendChild(button);
+  });
 }
 
 function openLink(entry) {
@@ -373,7 +451,11 @@ function openEntryEditor(entryId) {
     }
     elements.entryFolder.appendChild(option);
   });
-  elements.entryTags.value = escapeTagList(entry.tagIds.map(tagId => state.library.tagsById[tagId]?.name).filter(Boolean));
+  state.editingEntryTagNames = entry.tagIds
+    .map(tagId => state.library.tagsById[tagId]?.name)
+    .filter(Boolean);
+  renderEntryTagEditor();
+  elements.entryNewTag.value = '';
   elements.entryFavorite.checked = entry.favorite;
   elements.entryPinned.checked = entry.pinned;
   elements.entryRead.checked = entry.read;
@@ -382,6 +464,8 @@ function openEntryEditor(entryId) {
 
 function closeEntryEditor() {
   state.editingEntryId = null;
+  state.editingEntryTagNames = [];
+  elements.entryNewTag.value = '';
   elements.entryModal.hidden = true;
 }
 
@@ -462,6 +546,7 @@ function render() {
   renderViews();
   renderFolders();
   renderFilterButtons();
+  renderSearchPanel();
   renderTagManagerPanel();
   renderEntries();
   renderTagLibrary();
@@ -541,6 +626,28 @@ elements.folderForm.addEventListener('submit', async event => {
   showStatus('Folder created.', 'success');
 });
 
+elements.toggleSearch.addEventListener('click', () => {
+  state.searchOpen = !state.searchOpen;
+  renderSearchPanel();
+  if (state.searchOpen) {
+    window.setTimeout(() => {
+      elements.searchQuery.focus();
+      elements.searchQuery.select();
+    }, 0);
+  }
+});
+
+elements.searchQuery.addEventListener('input', event => {
+  state.query = event.target.value;
+  renderEntries();
+});
+
+elements.clearSearch.addEventListener('click', () => {
+  state.query = '';
+  elements.searchQuery.value = '';
+  renderEntries();
+});
+
 document.querySelectorAll('[data-toggle-filter]').forEach(button => {
   button.addEventListener('click', () => {
     const nextView = button.dataset.toggleFilter;
@@ -580,6 +687,22 @@ elements.tagLibrarySearch.addEventListener('input', event => {
   renderTagLibrary();
 });
 
+elements.entryAddTag.addEventListener('click', () => {
+  const selectedName = elements.entryTagSelect.value;
+  if (!selectedName) {
+    return;
+  }
+  if (addEditingTagName(selectedName)) {
+    elements.entryTagSelect.value = '';
+  }
+});
+
+elements.entryCreateTag.addEventListener('click', () => {
+  if (addEditingTagName(elements.entryNewTag.value)) {
+    elements.entryNewTag.value = '';
+  }
+});
+
 elements.entryForm.addEventListener('submit', async event => {
   event.preventDefault();
   const entryId = elements.entryId.value;
@@ -589,7 +712,7 @@ elements.entryForm.addEventListener('submit', async event => {
     title: elements.entryTitle.value,
     description: elements.entryDescription.value,
     folderId: nextFolderId,
-    tagNames: parseTagInput(elements.entryTags.value),
+    tagNames: state.editingEntryTagNames,
     favorite: elements.entryFavorite.checked,
     pinned: elements.entryPinned.checked,
     read: elements.entryRead.checked

@@ -274,6 +274,25 @@ function createLibraryWithTagsAndFlags() {
   return library;
 }
 
+function createLibraryWithAvailableTags() {
+  const library = createLibraryWithFolder();
+  const now = new Date().toISOString();
+  library.tagsById.tag_urgent = {
+    id: 'tag_urgent',
+    name: 'urgent',
+    createdAt: now,
+    updatedAt: now
+  };
+  library.tagsById.tag_reading = {
+    id: 'tag_reading',
+    name: 'reading',
+    createdAt: now,
+    updatedAt: now
+  };
+  library.tagOrder = ['tag_urgent', 'tag_reading'];
+  return library;
+}
+
 function createLibraryWithManyFolders() {
   const library = createLibraryWithVisibleEntries();
   for (let index = 0; index < 12; index += 1) {
@@ -352,14 +371,18 @@ try {
     await popup.close();
   });
 
-  await record('search block is removed from popup header', async () => {
-    const popup = await preparePopup(createSeedLibrary());
-    if (await popup.locator('#search-query').count() !== 0) {
-      throw new Error('search input still rendered');
-    }
-    if (await popup.locator('#clear-filters').count() !== 0) {
-      throw new Error('clear filters button still rendered');
-    }
+  await record('search panel opens from toolbar and filters entries', async () => {
+    const popup = await preparePopup(createLibraryWithVisibleEntries());
+    await popup.locator('#toggle-search').dispatchEvent('click');
+    await popup.waitForTimeout(100);
+    const searchHidden = await popup.locator('#search-panel').evaluate(node => node.hidden);
+    if (searchHidden) throw new Error('search panel did not open');
+    await popup.locator('#search-query').fill('web.dev');
+    await popup.waitForTimeout(150);
+    if (await popup.locator('.entry-card').count() !== 1) throw new Error('search did not narrow results');
+    await popup.locator('#clear-search').dispatchEvent('click');
+    await popup.waitForTimeout(100);
+    if (await popup.locator('.entry-card').count() < 4) throw new Error('clear search did not restore entries');
     await popup.close();
   });
 
@@ -510,6 +533,25 @@ try {
     await popup.close();
   });
 
+  await record('tag names must stay unique on create and rename', async () => {
+    const popup = await preparePopup(createLibraryWithAvailableTags());
+    await popup.locator('#manage-tags').dispatchEvent('click');
+    await popup.locator('#tag-name').fill('Urgent');
+    await popup.locator('#tag-form').evaluate(form => form.requestSubmit());
+    await popup.waitForTimeout(200);
+    const createStatus = await popup.locator('#status-strip').textContent();
+    if (!createStatus?.includes('unique')) throw new Error(`expected duplicate tag error, got ${createStatus}`);
+
+    const row = popup.locator('.tag-library-item', { hasText: 'reading' }).first();
+    await row.locator('.micro-button').first().dispatchEvent('click');
+    await popup.locator('.inline-rename-input').fill('urgent');
+    await popup.locator('.inline-rename-form').evaluate(form => form.requestSubmit());
+    await popup.waitForTimeout(200);
+    const renameStatus = await popup.locator('#status-strip').textContent();
+    if (!renameStatus?.includes('unique')) throw new Error(`expected duplicate tag rename error, got ${renameStatus}`);
+    await popup.close();
+  });
+
   await record('tag panel closes cleanly before entry editing', async () => {
     const popup = await preparePopup(createSeedLibrary());
     await popup.locator('#manage-tags').dispatchEvent('click');
@@ -530,7 +572,7 @@ try {
   });
 
   await record('entry edit flow updates folder, tags, favorite, pin and read state', async () => {
-    const popup = await preparePopup(createLibraryWithFolder());
+    const popup = await preparePopup(createLibraryWithAvailableTags());
     await popup.waitForSelector('.entry-card');
     step('open entry editor');
     await popup.locator('.entry-card .edit-button').first().dispatchEvent('click');
@@ -541,7 +583,10 @@ try {
       throw new Error(`folder options missing target folder: ${folderOptions.join(',')}`);
     }
     await popup.locator('#entry-folder').selectOption({ label: 'Deep Research' });
-    await popup.locator('#entry-tags').fill('urgent, reading');
+    await popup.locator('#entry-tag-select').selectOption({ label: 'urgent' });
+    await popup.locator('#entry-add-tag').dispatchEvent('click');
+    await popup.locator('#entry-new-tag').fill('reading-notes');
+    await popup.locator('#entry-create-tag').dispatchEvent('click');
     await popup.locator('#entry-favorite').check();
     await popup.locator('#entry-pinned').check();
     await popup.locator('#entry-read').check();
@@ -558,8 +603,25 @@ try {
       const storage = await popup.evaluate(async () => new Promise(resolve => chrome.storage.local.get('readingListData', resolve)));
       throw new Error(`missing entry badges count=${entryCount} badges=${badges.join(',')} tags=${tags.join(',')} meta=${meta.join(',')} storage=${JSON.stringify(storage)}`);
     }
-    if (!tags.includes('#urgent') || !tags.includes('#reading')) throw new Error(`missing tag chips ${tags.join(',')}`);
+    if (!tags.includes('#urgent') || !tags.includes('#reading-notes')) throw new Error(`missing tag chips ${tags.join(',')}`);
     if (!meta.some(text => text.includes('Deep Research'))) throw new Error(`folder badge not updated ${meta.join(',')}`);
+    await popup.close();
+  });
+
+  await record('entry editor prevents duplicate tag selection', async () => {
+    const popup = await preparePopup(createLibraryWithAvailableTags());
+    await popup.waitForSelector('.entry-card');
+    await popup.locator('.entry-card .edit-button').first().dispatchEvent('click');
+    await popup.waitForTimeout(150);
+    await popup.locator('#entry-tag-select').selectOption({ label: 'urgent' });
+    await popup.locator('#entry-add-tag').dispatchEvent('click');
+    await popup.locator('#entry-new-tag').fill('Urgent');
+    await popup.locator('#entry-create-tag').dispatchEvent('click');
+    await popup.waitForTimeout(100);
+    const selectedTags = await popup.locator('#entry-selected-tags .tag-chip').allTextContents();
+    const status = await popup.locator('#status-strip').textContent();
+    if (selectedTags.length !== 1) throw new Error(`duplicate tag was added: ${selectedTags.join(',')}`);
+    if (!status?.includes('already selected')) throw new Error(`duplicate tag status missing: ${status}`);
     await popup.close();
   });
 
@@ -590,11 +652,11 @@ try {
   await record('favorites, pinned and unread views behave correctly', async () => {
     const popup = await preparePopup(createLibraryWithTagsAndFlags());
     await popup.waitForSelector('.entry-card');
-    await popup.locator('#view-list').getByRole('button', { name: 'Favorites' }).dispatchEvent('click');
+    await popup.locator('#view-list').locator('button', { hasText: 'Favorites' }).first().dispatchEvent('click');
     if (await popup.locator('.entry-card').count() !== 1) throw new Error('favorites view missing favorite entry');
-    await popup.locator('#view-list').getByRole('button', { name: 'Pinned' }).dispatchEvent('click');
+    await popup.locator('#view-list').locator('button', { hasText: 'Pinned' }).first().dispatchEvent('click');
     if (await popup.locator('.entry-card').count() !== 1) throw new Error('pinned view missing pinned entry');
-    await popup.locator('#view-list').getByRole('button', { name: 'Unread' }).dispatchEvent('click');
+    await popup.locator('#view-list').locator('button', { hasText: 'Unread' }).first().dispatchEvent('click');
     if (await popup.locator('.entry-card').count() !== 0) throw new Error('unread view should be empty after marking entry read');
     await popup.close();
   });

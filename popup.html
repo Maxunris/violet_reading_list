@@ -37,9 +37,18 @@
             <h2 id="active-scope-label">All saved entries</h2>
           </div>
           <div class="toolbar-actions">
+            <button id="toggle-search" class="secondary-action" type="button">Search</button>
             <button id="save-current" class="primary-action hero-action" type="button">Save Current Tab</button>
           </div>
         </header>
+
+        <section id="search-panel" class="search-panel" hidden>
+          <label class="search-field">
+            <span>Search</span>
+            <input id="search-query" type="search" placeholder="Search title, description, URL">
+          </label>
+          <button id="clear-search" class="ghost-action" type="button">Clear</button>
+        </section>
 
         <section class="filter-panel">
           <div class="filter-group">
@@ -107,7 +116,17 @@
           </label>
           <label>
             <span>Tags</span>
-            <input id="entry-tags" type="text" placeholder="news, design, work">
+            <div class="entry-tag-editor">
+              <div class="entry-tag-row">
+                <select id="entry-tag-select"></select>
+                <button id="entry-add-tag" class="secondary-action inline-tag-action" type="button">Add existing</button>
+              </div>
+              <div class="entry-tag-row">
+                <input id="entry-new-tag" type="text" maxlength="32" placeholder="Create a new tag">
+                <button id="entry-create-tag" class="secondary-action inline-tag-action" type="button">Create tag</button>
+              </div>
+              <div id="entry-selected-tags" class="entry-selected-tags"></div>
+            </div>
           </label>
           <div class="toggle-row">
             <label><input id="entry-favorite" type="checkbox"> Favorite</label>

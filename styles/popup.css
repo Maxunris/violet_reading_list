@@ -304,6 +304,11 @@ button {
   box-shadow: 0 16px 28px rgba(98, 41, 217, 0.28);
 }
 
+.secondary-action.active {
+  background: linear-gradient(135deg, #8a4cff, #6327dc);
+  color: white;
+}
+
 .search-panel,
 .filter-panel {
   padding: 8px 12px;
@@ -319,6 +324,10 @@ button {
   gap: 4px;
   flex: 1;
   min-width: 220px;
+}
+
+.search-panel[hidden] {
+  display: none !important;
 }
 
 .search-field span {
@@ -621,6 +630,32 @@ button {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.entry-tag-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.entry-tag-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.inline-tag-action {
+  white-space: nowrap;
+}
+
+.entry-selected-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tag-chip.selected {
+  cursor: pointer;
 }
 
 .toggle-row {

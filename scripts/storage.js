@@ -139,6 +139,20 @@ function folderNameExists(library, name, excludeFolderId = null) {
   });
 }
 
+function tagNameExists(library, name, excludeTagId = null) {
+  const normalized = sanitizeTagName(name).toLowerCase();
+  if (!normalized) {
+    return false;
+  }
+
+  return Object.values(library.tagsById).some(tag => {
+    if (!tag || tag.id === excludeTagId) {
+      return false;
+    }
+    return sanitizeTagName(tag.name).toLowerCase() === normalized;
+  });
+}
+
 export function normalizeLibrary(source) {
   const base = createDefaultLibrary();
   const incoming = source ? cloneLibrary(source) : base;
@@ -434,10 +448,8 @@ export async function createTag(name) {
   if (!cleanName) {
     throw new Error('Tag name cannot be empty.');
   }
-
-  const existing = Object.values(library.tagsById).find(tag => tag.name.toLowerCase() === cleanName.toLowerCase());
-  if (existing) {
-    return library;
+  if (tagNameExists(library, cleanName)) {
+    throw new Error('Tag name must be unique.');
   }
 
   const tagId = createId('tag');
@@ -459,6 +471,9 @@ export async function renameTag(tagId, name) {
   const cleanName = sanitizeTagName(name);
   if (!cleanName) {
     throw new Error('Tag name cannot be empty.');
+  }
+  if (tagNameExists(library, cleanName, tagId)) {
+    throw new Error('Tag name must be unique.');
   }
   library.tagsById[tagId].name = cleanName;
   library.tagsById[tagId].updatedAt = now();

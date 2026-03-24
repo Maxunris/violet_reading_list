@@ -19,14 +19,15 @@
 13. The tag manager closes cleanly before entry editing and can be closed explicitly from its close button.
 14. Entry editing updates folder assignment, allows adding existing tags and creating new tags, and persists favorite, pinned, read, and description changes.
 15. Duplicate tag selection inside the editor is blocked by the UI and duplicate tag creation is blocked by storage validation.
-16. Long entry titles still leave the action buttons visible and clickable.
-17. Quick views for favorites, pinned, and unread entries show the expected subset.
-18. Deleting a folder reassigns its entries back to `Inbox`.
-19. Options export and replace import serialize and restore library state correctly.
-20. `Escape` closes the entry editor cleanly.
-21. The popup toolbar no longer renders the backup action.
-22. The entry editor close button hides the modal cleanly.
-23. The content script returns page metadata for a supported page and the background script can retrieve it.
+16. Deleting a saved link uses an inline confirmation modal and cancellation keeps the entry intact.
+17. Long entry titles still leave the action buttons visible and clickable.
+18. Quick views for favorites, pinned, and unread entries show the expected subset.
+19. Deleting a folder uses the inline confirmation modal and reassigns its entries back to `Inbox`.
+20. Options export and replace import serialize and restore library state correctly.
+21. `Escape` closes the entry editor cleanly.
+22. The popup toolbar no longer renders the backup action.
+23. The entry editor close button hides the modal cleanly.
+24. The content script returns page metadata for a supported page and the background script can retrieve it.
 
 ## Recommended verification command
 

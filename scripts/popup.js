@@ -21,6 +21,7 @@ const state = {
   searchOpen: false,
   tagLibrarySearch: '',
   tagManagerOpen: false,
+  confirmDialog: null,
   editingEntryId: null,
   editingEntryTagNames: [],
   editingFolderId: null,
@@ -44,6 +45,12 @@ const elements = {
   entryTemplate: document.getElementById('entry-template'),
   entryModal: document.getElementById('entry-modal'),
   closeEntryModal: document.getElementById('close-entry-modal'),
+  confirmModal: document.getElementById('confirm-modal'),
+  closeConfirmModal: document.getElementById('close-confirm-modal'),
+  confirmTitle: document.getElementById('confirm-title'),
+  confirmMessage: document.getElementById('confirm-message'),
+  confirmCancel: document.getElementById('confirm-cancel'),
+  confirmSubmit: document.getElementById('confirm-submit'),
   entryForm: document.getElementById('entry-form'),
   entryId: document.getElementById('entry-id'),
   entryTitle: document.getElementById('entry-title'),
@@ -68,6 +75,7 @@ const elements = {
 };
 
 let statusTimer = null;
+let pendingConfirmAction = null;
 
 function getTags(library) {
   return library.tagOrder
@@ -236,13 +244,16 @@ function renderFolders() {
     deleteButton.className = 'micro-button';
     deleteButton.textContent = '−';
     deleteButton.disabled = folder.system;
-    deleteButton.addEventListener('click', async () => {
-      const confirmed = window.confirm(`Delete "${folder.name}"? Its entries will move to Inbox.`);
-      if (!confirmed) {
-        return;
-      }
-      await deleteFolder(folder.id).catch(showError);
-      await syncLibrary();
+    deleteButton.addEventListener('click', () => {
+      openConfirmDialog({
+        title: `Delete folder "${folder.name}"?`,
+        message: 'All links from this folder will be moved to Inbox.',
+        confirmLabel: 'Delete folder',
+        onConfirm: async () => {
+          await deleteFolder(folder.id);
+          await syncLibrary();
+        }
+      });
     });
 
     row.append(button, renameButton, deleteButton);
@@ -264,6 +275,40 @@ function renderSearchPanel() {
 function renderTagManagerPanel() {
   elements.tagManagerPanel.hidden = !state.tagManagerOpen;
   elements.manageTags.textContent = state.tagManagerOpen ? 'Hide tags' : 'Manage tags';
+}
+
+function renderConfirmDialog() {
+  const dialog = state.confirmDialog;
+  elements.confirmModal.hidden = !dialog;
+
+  if (!dialog) {
+    return;
+  }
+
+  elements.confirmTitle.textContent = dialog.title;
+  elements.confirmMessage.textContent = dialog.message;
+  elements.confirmSubmit.textContent = dialog.confirmLabel;
+}
+
+function openConfirmDialog({ title, message, confirmLabel = 'Delete', onConfirm }) {
+  pendingConfirmAction = onConfirm;
+  state.confirmDialog = { title, message, confirmLabel };
+  renderConfirmDialog();
+}
+
+function closeConfirmDialog() {
+  state.confirmDialog = null;
+  pendingConfirmAction = null;
+  renderConfirmDialog();
+}
+
+async function confirmCurrentAction() {
+  const action = pendingConfirmAction;
+  closeConfirmDialog();
+  if (!action) {
+    return;
+  }
+  await action().catch(showError);
 }
 
 function createBadge(label, className = '') {
@@ -417,13 +462,16 @@ function renderEntries() {
     editButton.addEventListener('click', () => {
       openEntryEditor(entry.id);
     });
-    deleteButton.addEventListener('click', async () => {
-      const confirmed = window.confirm(`Delete "${entry.title}"?`);
-      if (!confirmed) {
-        return;
-      }
-      await deleteEntry(entry.id).catch(showError);
-      await syncLibrary();
+    deleteButton.addEventListener('click', () => {
+      openConfirmDialog({
+        title: 'Delete saved link?',
+        message: entry.title,
+        confirmLabel: 'Delete link',
+        onConfirm: async () => {
+          await deleteEntry(entry.id);
+          await syncLibrary();
+        }
+      });
     });
 
     elements.entryList.appendChild(fragment);
@@ -528,13 +576,16 @@ function renderTagLibrary() {
       deleteButton.type = 'button';
       deleteButton.className = 'micro-button';
       deleteButton.textContent = '−';
-      deleteButton.addEventListener('click', async () => {
-        const confirmed = window.confirm(`Delete tag "${tag.name}"?`);
-        if (!confirmed) {
-          return;
-        }
-        await deleteTag(tag.id).catch(showError);
-        await syncLibrary();
+      deleteButton.addEventListener('click', () => {
+        openConfirmDialog({
+          title: `Delete tag "${tag.name}"?`,
+          message: 'This tag will be removed from the library and from every saved link that uses it.',
+          confirmLabel: 'Delete tag',
+          onConfirm: async () => {
+            await deleteTag(tag.id);
+            await syncLibrary();
+          }
+        });
       });
 
       row.append(name, renameButton, deleteButton);
@@ -548,6 +599,7 @@ function render() {
   renderFilterButtons();
   renderSearchPanel();
   renderTagManagerPanel();
+  renderConfirmDialog();
   renderEntries();
   renderTagLibrary();
 }
@@ -669,6 +721,11 @@ elements.closeTagPanel.addEventListener('click', () => {
 });
 
 elements.closeEntryModal.addEventListener('click', closeEntryEditor);
+elements.closeConfirmModal.addEventListener('click', closeConfirmDialog);
+elements.confirmCancel.addEventListener('click', closeConfirmDialog);
+elements.confirmSubmit.addEventListener('click', () => {
+  confirmCurrentAction();
+});
 
 elements.tagForm.addEventListener('submit', async event => {
   event.preventDefault();
@@ -741,12 +798,18 @@ window.addEventListener('click', event => {
   if (event.target === elements.entryModal) {
     closeEntryEditor();
   }
+  if (event.target === elements.confirmModal) {
+    closeConfirmDialog();
+  }
 });
 
 window.addEventListener('keydown', event => {
   if (event.key === 'Escape') {
     if (!elements.entryModal.hidden) {
       closeEntryEditor();
+    }
+    if (!elements.confirmModal.hidden) {
+      closeConfirmDialog();
     }
     if (state.tagManagerOpen) {
       closeTagManager();
@@ -756,6 +819,7 @@ window.addEventListener('keydown', event => {
 
 async function init() {
   closeEntryEditor();
+  closeConfirmDialog();
   closeTagManager();
   state.library = await loadLibrary();
   state.folderId = DEFAULT_FOLDER_ID;

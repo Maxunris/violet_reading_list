@@ -526,8 +526,9 @@ try {
     row = popup.locator('.tag-library-item', { hasText: 'urgent' }).first();
     if (await row.count() !== 1) throw new Error('tag not renamed');
     step('delete tag');
-    await popup.evaluate(() => { window.confirm = () => true; });
     await row.locator('.micro-button').nth(1).dispatchEvent('click');
+    await popup.waitForTimeout(100);
+    await popup.locator('#confirm-submit').dispatchEvent('click');
     await popup.waitForTimeout(200);
     if (await popup.locator('.tag-library-item', { hasText: 'urgent' }).count() !== 0) throw new Error('tag not deleted');
     await popup.close();
@@ -625,6 +626,22 @@ try {
     await popup.close();
   });
 
+  await record('entry delete uses inline confirmation modal and can be cancelled', async () => {
+    const popup = await preparePopup(createSeedLibrary());
+    await popup.waitForSelector('.entry-card');
+    await popup.locator('.entry-card .delete-button').first().dispatchEvent('click');
+    await popup.waitForTimeout(100);
+    const title = await popup.locator('#confirm-title').textContent();
+    if (!title?.includes('Delete saved link')) throw new Error(`unexpected confirm title: ${title}`);
+    await popup.locator('#confirm-cancel').dispatchEvent('click');
+    await popup.waitForTimeout(100);
+    const hidden = await popup.locator('#confirm-modal').evaluate(node => node.hidden);
+    const remaining = await popup.locator('.entry-card').count();
+    if (!hidden) throw new Error('confirm modal stayed open after cancel');
+    if (remaining !== 1) throw new Error(`entry changed after cancel: ${remaining}`);
+    await popup.close();
+  });
+
   await record('long entry titles keep action buttons visible', async () => {
     const popup = await preparePopup(createLibraryWithLongTitle());
     await popup.waitForSelector('.entry-card');
@@ -669,8 +686,9 @@ try {
     await popup.locator('.folder-row', { hasText: 'Deep Research' }).locator('.sidebar-button').dispatchEvent('click');
     await popup.waitForSelector('.entry-card');
     const row = popup.locator('.folder-row', { hasText: 'Deep Research' }).first();
-    await popup.evaluate(() => { window.confirm = () => true; });
     await row.locator('.micro-button').nth(1).dispatchEvent('click');
+    await popup.waitForTimeout(100);
+    await popup.locator('#confirm-submit').dispatchEvent('click');
     await popup.waitForTimeout(250);
     const folderLabels = await popup.locator('.entry-meta .badge').allTextContents();
     if (!folderLabels.some(text => text.includes('Inbox'))) throw new Error(`entry not reassigned to inbox: ${folderLabels.join(',')}`);

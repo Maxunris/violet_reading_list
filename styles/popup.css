@@ -626,6 +626,31 @@ button {
   gap: 14px;
 }
 
+.confirm-card {
+  width: min(460px, 100%);
+}
+
+.confirm-copy {
+  color: #4b376f;
+  line-height: 1.45;
+  margin-bottom: 18px;
+}
+
+.confirm-copy p {
+  margin: 0;
+}
+
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.danger-action {
+  background: linear-gradient(135deg, #a93b75, #7d2454);
+  box-shadow: 0 14px 24px rgba(125, 36, 84, 0.24);
+}
+
 .modal-form label {
   display: flex;
   flex-direction: column;

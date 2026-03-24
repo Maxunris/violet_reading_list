@@ -12,13 +12,14 @@
         <div class="brand-panel">
           <p class="eyebrow">Organize your queue</p>
           <h1>Violet List</h1>
-          <p class="brand-copy">Folders stay on the left. The reading pile finally behaves.</p>
+          <p class="brand-copy">Use folders and quick views to move around your saved links.</p>
         </div>
 
         <section class="sidebar-section">
           <div class="section-heading">
             <h2>Quick Views</h2>
           </div>
+          <p class="section-copy">Jump between all entries, favorites, pinned items, and unread links.</p>
           <div class="view-list" id="view-list"></div>
         </section>
 
@@ -26,6 +27,7 @@
           <div class="section-heading">
             <h2>Folders</h2>
           </div>
+          <p class="section-copy">Create folders here and switch between collections without losing your place.</p>
           <form id="folder-form" class="inline-form">
             <input id="folder-name" name="folderName" type="text" maxlength="40" placeholder="New folder name" autocomplete="off">
             <button type="submit">Add</button>
@@ -51,11 +53,8 @@
             <span>Search</span>
             <input id="search-query" type="search" placeholder="Search title, description, URL">
           </label>
-          <label class="search-field">
-            <span>Domain</span>
-            <input id="domain-query" type="search" placeholder="example.com">
-          </label>
           <button id="clear-filters" class="ghost-action" type="button">Clear filters</button>
+          <button id="manage-tags" class="ghost-action" type="button">Manage tags</button>
         </section>
 
         <section class="filter-panel">
@@ -65,12 +64,6 @@
             <button class="pill-filter" data-toggle-filter="pinned" type="button">Pinned</button>
             <button class="pill-filter" data-toggle-filter="unread" type="button">Unread</button>
           </div>
-          <div class="filter-group tag-filter-group">
-            <span class="filter-label">Tag search</span>
-            <input id="tag-search" type="search" placeholder="Filter tags">
-            <button id="manage-tags" class="ghost-action" type="button">Manage tags</button>
-          </div>
-          <div id="tag-filter-list" class="tag-filter-list"></div>
         </section>
 
         <section id="tag-manager-panel" class="tag-manager-panel" hidden>
@@ -90,25 +83,6 @@
             <input id="tag-library-search" type="search" placeholder="Search tags">
           </label>
           <div id="tag-library-list" class="tag-library-list"></div>
-        </section>
-
-        <section class="summary-panel">
-          <div class="summary-card">
-            <span class="summary-label">Entries</span>
-            <strong id="entry-count">0</strong>
-          </div>
-          <div class="summary-card">
-            <span class="summary-label">Unread</span>
-            <strong id="unread-count">0</strong>
-          </div>
-          <div class="summary-card">
-            <span class="summary-label">Favorites</span>
-            <strong id="favorite-count">0</strong>
-          </div>
-          <div class="summary-card">
-            <span class="summary-label">Pinned</span>
-            <strong id="pinned-count">0</strong>
-          </div>
         </section>
 
         <section class="entry-panel">

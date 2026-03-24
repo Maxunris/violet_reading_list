@@ -180,23 +180,54 @@ function createLibraryWithFolder() {
 
 function createLibraryWithVisibleEntries() {
   const library = createSeedLibrary();
-  const now = new Date().toISOString();
-  library.entriesById.entry_beta = {
-    id: 'entry_beta',
-    url: 'https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions',
-    title: 'WebExtensions Docs',
-    description: 'Documentation for browser extensions and APIs.',
-    domain: 'developer.mozilla.org',
-    faviconUrl: 'https://icons.duckduckgo.com/ip3/developer.mozilla.org.ico',
-    folderId: 'folder_inbox',
-    tagIds: [],
-    favorite: false,
-    pinned: false,
-    read: false,
-    createdAt: now,
-    updatedAt: now
-  };
-  library.entryOrder = ['entry_beta', 'entry_alpha'];
+  const entries = [
+    {
+      id: 'entry_beta',
+      url: 'https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions',
+      title: 'WebExtensions Docs',
+      description: 'Documentation for browser extensions and APIs.',
+      domain: 'developer.mozilla.org',
+      faviconUrl: 'https://icons.duckduckgo.com/ip3/developer.mozilla.org.ico'
+    },
+    {
+      id: 'entry_gamma',
+      url: 'https://example.org/research',
+      title: 'Research Notes',
+      description: 'Collected notes for the next reading session.',
+      domain: 'example.org',
+      faviconUrl: 'https://icons.duckduckgo.com/ip3/example.org.ico'
+    },
+    {
+      id: 'entry_delta',
+      url: 'https://news.ycombinator.com',
+      title: 'Hacker News',
+      description: 'Daily feed of engineering and startup links.',
+      domain: 'news.ycombinator.com',
+      faviconUrl: 'https://icons.duckduckgo.com/ip3/news.ycombinator.com.ico'
+    },
+    {
+      id: 'entry_epsilon',
+      url: 'https://web.dev',
+      title: 'web.dev',
+      description: 'Performance, accessibility, and modern web guidance.',
+      domain: 'web.dev',
+      faviconUrl: 'https://icons.duckduckgo.com/ip3/web.dev.ico'
+    }
+  ];
+  entries.forEach((entry, index) => {
+    const timestamp = new Date(Date.now() + index * 1000).toISOString();
+    library.entriesById[entry.id] = {
+      ...entry,
+      folderId: 'folder_inbox',
+      tagIds: [],
+      favorite: false,
+      pinned: false,
+      read: false,
+      createdAt: timestamp,
+      updatedAt: timestamp
+    };
+  });
+  library.entryOrder = ['entry_epsilon', 'entry_delta', 'entry_gamma', 'entry_beta', 'entry_alpha'];
   return library;
 }
 
@@ -226,6 +257,23 @@ function createLibraryWithTagsAndFlags() {
     description: 'Updated description for smoke test'
   };
   library.settings.selectedFolderId = 'folder_research';
+  return library;
+}
+
+function createLibraryWithManyFolders() {
+  const library = createLibraryWithVisibleEntries();
+  for (let index = 0; index < 12; index += 1) {
+    const id = `folder_extra_${index}`;
+    const timestamp = new Date(Date.now() + index * 1000).toISOString();
+    library.foldersById[id] = {
+      id,
+      name: `Folder ${index + 1}`,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      system: false
+    };
+    library.folderOrder.push(id);
+  }
   return library;
 }
 
@@ -278,27 +326,60 @@ try {
     await popup.close();
   });
 
-  await record('saved entries are visible without scrolling to the bottom', async () => {
+  await record('saved entries show at least four visible cards in the right pane', async () => {
     const popup = await preparePopup(createLibraryWithVisibleEntries());
     await popup.waitForSelector('.entry-card');
     const layout = await popup.evaluate(() => {
       const panel = document.getElementById('entry-list');
-      const firstCard = document.querySelector('.entry-card');
       const panelRect = panel.getBoundingClientRect();
-      const cardRect = firstCard.getBoundingClientRect();
+      const cards = Array.from(document.querySelectorAll('.entry-card'));
+      const visibleCards = cards.filter(card => {
+        const rect = card.getBoundingClientRect();
+        return rect.top >= panelRect.top && rect.bottom <= panelRect.bottom;
+      }).length;
       return {
-        entryCount: document.querySelectorAll('.entry-card').length,
+        entryCount: cards.length,
+        visibleCards,
         panelHeight: panelRect.height,
-        panelTop: panelRect.top,
-        cardTop: cardRect.top,
-        cardBottom: cardRect.bottom,
         viewportHeight: window.innerHeight
       };
     });
     if (layout.entryCount < 1) throw new Error(`no visible entries: ${JSON.stringify(layout)}`);
-    if (layout.panelHeight < 120) throw new Error(`entry panel too small: ${JSON.stringify(layout)}`);
-    if (layout.cardTop >= layout.viewportHeight || layout.cardBottom <= 0) {
-      throw new Error(`first saved entry is not visible: ${JSON.stringify(layout)}`);
+    if (layout.panelHeight < 220) throw new Error(`entry panel too small: ${JSON.stringify(layout)}`);
+    if (layout.visibleCards < 4) {
+      throw new Error(`fewer than four visible saved links: ${JSON.stringify(layout)}`);
+    }
+    await popup.close();
+  });
+
+  await record('left sidebar scrolls independently from the entry list', async () => {
+    const popup = await preparePopup(createLibraryWithManyFolders());
+    const scrollState = await popup.evaluate(() => {
+      const sidebar = document.querySelector('.sidebar');
+      const entryList = document.getElementById('entry-list');
+      const before = {
+        sidebarScrollHeight: sidebar.scrollHeight,
+        sidebarClientHeight: sidebar.clientHeight,
+        sidebarTop: sidebar.scrollTop,
+        entryTop: entryList.scrollTop
+      };
+      sidebar.scrollTop = 140;
+      return {
+        before,
+        after: {
+          sidebarTop: sidebar.scrollTop,
+          entryTop: entryList.scrollTop
+        }
+      };
+    });
+    if (scrollState.before.sidebarScrollHeight <= scrollState.before.sidebarClientHeight) {
+      throw new Error(`sidebar is not overflowing: ${JSON.stringify(scrollState)}`);
+    }
+    if (scrollState.after.sidebarTop <= scrollState.before.sidebarTop) {
+      throw new Error(`sidebar did not scroll: ${JSON.stringify(scrollState)}`);
+    }
+    if (scrollState.after.entryTop !== scrollState.before.entryTop) {
+      throw new Error(`entry list scroll changed together with sidebar: ${JSON.stringify(scrollState)}`);
     }
     await popup.close();
   });
@@ -415,7 +496,7 @@ try {
     await popup.close();
   });
 
-  await record('search by text, domain and tag narrows results', async () => {
+  await record('search by text narrows results', async () => {
     const popup = await preparePopup(createLibraryWithTagsAndFlags());
     await popup.waitForSelector('.entry-card');
     await popup.locator('#search-query').fill('Updated description');
@@ -424,12 +505,7 @@ try {
     await popup.waitForTimeout(150);
     if (await popup.locator('.entry-card').count() !== 0) throw new Error('text filter did not empty results');
     await popup.locator('#clear-filters').dispatchEvent('click');
-    await popup.locator('#domain-query').fill('example.com');
-    await popup.waitForTimeout(150);
-    if (await popup.locator('.entry-card').count() !== 1) throw new Error('domain filter removed expected entry');
-    await popup.locator('.entry-tags .badge', { hasText: '#urgent' }).first().dispatchEvent('click');
-    await popup.waitForTimeout(150);
-    if (await popup.locator('.entry-card').count() !== 1) throw new Error('tag click filter removed expected entry');
+    if (await popup.locator('.entry-card').count() !== 1) throw new Error('clear filters did not restore entry');
     await popup.close();
   });
 

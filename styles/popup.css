@@ -27,13 +27,13 @@
 
 html {
   width: 760px;
-  height: 600px;
+  height: 680px;
 }
 
 body {
   margin: 0;
   width: 760px;
-  height: 600px;
+  height: 680px;
   overflow: hidden;
   background:
     radial-gradient(circle at top left, rgba(149, 93, 255, 0.25), transparent 30%),
@@ -56,7 +56,7 @@ button {
 .app-shell {
   display: grid;
   grid-template-columns: 272px minmax(0, 1fr);
-  height: 600px;
+  height: 680px;
 }
 
 .sidebar {
@@ -66,6 +66,7 @@ button {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  min-height: 0;
   overflow-y: auto;
 }
 
@@ -74,7 +75,6 @@ button {
 .toolbar,
 .search-panel,
 .filter-panel,
-.summary-panel,
 .entry-panel,
 .modal-card {
   backdrop-filter: blur(18px);
@@ -92,13 +92,12 @@ button {
 .toolbar h2,
 .modal-header h3 {
   margin: 0;
-  font-size: 24px;
+  font-size: 22px;
   line-height: 1.05;
 }
 
 .brand-copy,
 .eyebrow,
-.summary-label,
 .entry-meta,
 .filter-label {
   color: var(--text-soft);
@@ -114,8 +113,8 @@ button {
 .eyebrow {
   text-transform: uppercase;
   letter-spacing: 0.14em;
-  font-size: 11px;
-  margin: 0 0 8px;
+  font-size: 10px;
+  margin: 0 0 6px;
 }
 
 .section-heading {
@@ -130,6 +129,13 @@ button {
   font-size: 14px;
   text-transform: uppercase;
   letter-spacing: 0.1em;
+}
+
+.section-copy {
+  margin: 0 0 10px;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 12px;
+  line-height: 1.35;
 }
 
 .inline-form {
@@ -258,9 +264,9 @@ button {
 
 .main-panel {
   padding: 14px;
-  display: grid;
-  grid-template-rows: auto auto auto auto 1fr;
-  gap: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   min-width: 0;
   min-height: 0;
   overflow: hidden;
@@ -279,11 +285,11 @@ button {
 }
 
 .toolbar {
-  padding: 14px 16px;
+  padding: 8px 12px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
@@ -296,19 +302,19 @@ button {
 
 .search-panel,
 .filter-panel {
-  padding: 12px 16px;
+  padding: 8px 12px;
   display: flex;
-  gap: 10px;
-  align-items: end;
+  gap: 8px;
+  align-items: center;
   flex-wrap: wrap;
 }
 
 .search-field {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   flex: 1;
-  min-width: 148px;
+  min-width: 220px;
 }
 
 .search-field span {
@@ -318,8 +324,9 @@ button {
 }
 
 .filter-panel {
-  flex-direction: column;
-  align-items: stretch;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
   gap: 8px;
 }
 
@@ -350,10 +357,6 @@ button {
   flex-wrap: wrap;
 }
 
-.tag-filter-group input {
-  max-width: 180px;
-}
-
 .pill-filter,
 .tag-chip,
 .badge {
@@ -382,7 +385,6 @@ button {
   color: white;
 }
 
-.tag-filter-list,
 .entry-tags,
 .entry-badges,
 .entry-meta {
@@ -391,38 +393,18 @@ button {
   gap: 8px;
 }
 
-.summary-panel {
-  padding: 10px 12px;
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.summary-card {
-  padding: 10px 12px;
-  border-radius: 16px;
-  background: var(--surface-strong);
-  border: 1px solid var(--border);
-  min-width: 0;
-}
-
-.summary-card strong {
-  display: block;
-  font-size: 18px;
-  margin-top: 4px;
-}
-
 .entry-panel {
-  padding: 12px;
+  padding: 10px;
   position: relative;
   overflow: hidden;
   min-height: 0;
+  flex: 1;
 }
 
 .entry-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
   max-height: 100%;
   overflow-y: auto;
   padding-right: 4px;
@@ -431,9 +413,9 @@ button {
 .entry-card {
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 10px;
-  padding: 14px;
-  border-radius: 18px;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: 14px;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(245, 239, 255, 0.94));
   border: 1px solid rgba(127, 61, 255, 0.12);
 }
@@ -449,13 +431,13 @@ button {
 
 .entry-main {
   display: flex;
-  gap: 10px;
+  gap: 6px;
 }
 
 .entry-favicon-wrap {
-  width: 38px;
-  height: 38px;
-  border-radius: 12px;
+  width: 28px;
+  height: 28px;
+  border-radius: 10px;
   background: rgba(127, 61, 255, 0.1);
   display: grid;
   place-items: center;
@@ -464,21 +446,21 @@ button {
 }
 
 .entry-favicon {
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
 }
 
 .entry-copy {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 2px;
 }
 
 .entry-topline {
   display: flex;
-  gap: 8px;
-  align-items: flex-start;
+  gap: 6px;
+  align-items: center;
   justify-content: space-between;
 }
 
@@ -486,24 +468,32 @@ button {
   color: var(--text);
   font-weight: 700;
   text-decoration: none;
-  font-size: 15px;
+  font-size: 13px;
   min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .entry-description {
   margin: 0;
   color: #4b376f;
-  line-height: 1.35;
-  font-size: 13px;
+  line-height: 1.15;
+  font-size: 11px;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .entry-meta {
-  font-size: 11px;
+  font-size: 10px;
   color: var(--text-soft);
 }
 
 .badge {
-  font-size: 11px;
+  font-size: 10px;
 }
 
 .badge.favorite {
@@ -517,22 +507,22 @@ button {
 
 .entry-actions {
   display: flex;
-  align-items: flex-start;
-  gap: 6px;
+  align-items: center;
+  gap: 4px;
   flex-wrap: wrap;
   justify-content: flex-end;
 }
 
 .icon-button {
   border: 0;
-  width: 32px;
-  height: 32px;
+  width: 26px;
+  height: 26px;
   display: grid;
   place-items: center;
-  border-radius: 10px;
+  border-radius: 8px;
   background: rgba(127, 61, 255, 0.08);
   color: var(--accent-strong);
-  font-size: 14px;
+  font-size: 12px;
 }
 
 .icon-button.active {
@@ -684,7 +674,6 @@ button {
   .toolbar,
   .search-panel,
   .filter-panel,
-  .summary-panel,
   .entry-panel,
   .tag-manager-panel {
     border-radius: 24px;

@@ -18,9 +18,6 @@ const state = {
   folderId: DEFAULT_FOLDER_ID,
   activeView: 'folder',
   query: '',
-  domainQuery: '',
-  tagSearch: '',
-  selectedTagIds: [],
   tagLibrarySearch: '',
   tagManagerOpen: false,
   editingEntryId: null,
@@ -34,17 +31,10 @@ const elements = {
   folderList: document.getElementById('folder-list'),
   viewList: document.getElementById('view-list'),
   searchQuery: document.getElementById('search-query'),
-  domainQuery: document.getElementById('domain-query'),
   clearFilters: document.getElementById('clear-filters'),
-  tagSearch: document.getElementById('tag-search'),
-  tagFilterList: document.getElementById('tag-filter-list'),
   manageTags: document.getElementById('manage-tags'),
   entryList: document.getElementById('entry-list'),
   emptyState: document.getElementById('empty-state'),
-  entryCount: document.getElementById('entry-count'),
-  unreadCount: document.getElementById('unread-count'),
-  favoriteCount: document.getElementById('favorite-count'),
-  pinnedCount: document.getElementById('pinned-count'),
   activeScopeLabel: document.getElementById('active-scope-label'),
   saveCurrent: document.getElementById('save-current'),
   openOptions: document.getElementById('open-options'),
@@ -132,8 +122,6 @@ function matchText(haystacks, query) {
 function getFilteredEntries() {
   const entries = getEntries(state.library);
   const query = state.query.trim().toLowerCase();
-  const domainQuery = state.domainQuery.trim().toLowerCase();
-  const selectedTagIds = state.selectedTagIds;
 
   return entries
     .filter(entry => {
@@ -152,12 +140,6 @@ function getFilteredEntries() {
       if (!matchText([entry.title, entry.description, entry.url, entry.domain], query)) {
         return false;
       }
-      if (domainQuery && !entry.domain.toLowerCase().includes(domainQuery)) {
-        return false;
-      }
-      if (selectedTagIds.length > 0 && !selectedTagIds.every(tagId => entry.tagIds.includes(tagId))) {
-        return false;
-      }
       return true;
     })
     .sort((left, right) => {
@@ -169,11 +151,6 @@ function getFilteredEntries() {
 }
 
 function updateSummary(entries) {
-  const allEntries = getEntries(state.library);
-  elements.entryCount.textContent = `${allEntries.length}`;
-  elements.unreadCount.textContent = `${allEntries.filter(entry => !entry.read).length}`;
-  elements.favoriteCount.textContent = `${allEntries.filter(entry => entry.favorite).length}`;
-  elements.pinnedCount.textContent = `${allEntries.filter(entry => entry.pinned).length}`;
   elements.activeScopeLabel.textContent = activeScopeText();
   elements.emptyState.hidden = entries.length !== 0;
 }
@@ -259,28 +236,6 @@ function renderFolders() {
   });
 }
 
-function renderTagFilters() {
-  elements.tagFilterList.innerHTML = '';
-  const search = state.tagSearch.trim().toLowerCase();
-  const tags = getTags(state.library).filter(tag => tag.name.toLowerCase().includes(search));
-
-  tags.forEach(tag => {
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = `tag-chip${state.selectedTagIds.includes(tag.id) ? ' active' : ''}`;
-    button.textContent = tag.name;
-    button.addEventListener('click', () => {
-      if (state.selectedTagIds.includes(tag.id)) {
-        state.selectedTagIds = state.selectedTagIds.filter(id => id !== tag.id);
-      } else {
-        state.selectedTagIds = [...state.selectedTagIds, tag.id];
-      }
-      render();
-    });
-    elements.tagFilterList.appendChild(button);
-  });
-}
-
 function renderFilterButtons() {
   document.querySelectorAll('[data-toggle-filter]').forEach(button => {
     button.classList.toggle('active', button.dataset.toggleFilter === state.activeView);
@@ -346,18 +301,12 @@ function renderEntries() {
 
     description.textContent = entry.description;
     const folderBadge = createBadge(folderLabel(state.library, entry.folderId), 'interactive');
-    const domainBadge = createBadge(entry.domain || 'saved link', 'interactive');
+    const domainBadge = createBadge(entry.domain || 'saved link');
     const readBadge = createBadge(entry.read ? 'Read' : 'Unread');
 
     folderBadge.addEventListener('click', async () => {
       setSelectedFolder(entry.folderId);
       await saveSelectedFolder(entry.folderId);
-      render();
-    });
-
-    domainBadge.addEventListener('click', () => {
-      state.domainQuery = entry.domain || '';
-      elements.domainQuery.value = state.domainQuery;
       render();
     });
 
@@ -375,13 +324,7 @@ function renderEntries() {
       if (!tag) {
         return;
       }
-      const tagBadge = createBadge(`#${tag.name}`, 'interactive');
-      tagBadge.addEventListener('click', () => {
-        if (!state.selectedTagIds.includes(tag.id)) {
-          state.selectedTagIds = [...state.selectedTagIds, tag.id];
-        }
-        render();
-      });
+      const tagBadge = createBadge(`#${tag.name}`);
       tags.appendChild(tagBadge);
     });
 
@@ -527,7 +470,6 @@ function render() {
   renderViews();
   renderFolders();
   renderFilterButtons();
-  renderTagFilters();
   renderTagManagerPanel();
   renderEntries();
   renderTagLibrary();
@@ -612,25 +554,10 @@ elements.searchQuery.addEventListener('input', event => {
   render();
 });
 
-elements.domainQuery.addEventListener('input', event => {
-  state.domainQuery = event.target.value;
-  render();
-});
-
-elements.tagSearch.addEventListener('input', event => {
-  state.tagSearch = event.target.value;
-  renderTagFilters();
-});
-
 elements.clearFilters.addEventListener('click', () => {
   state.query = '';
-  state.domainQuery = '';
-  state.tagSearch = '';
-  state.selectedTagIds = [];
   state.activeView = 'folder';
   elements.searchQuery.value = '';
-  elements.domainQuery.value = '';
-  elements.tagSearch.value = '';
   render();
   showStatus('Filters cleared.');
 });

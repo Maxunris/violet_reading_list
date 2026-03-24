@@ -73,6 +73,25 @@
           <div id="tag-filter-list" class="tag-filter-list"></div>
         </section>
 
+        <section id="tag-manager-panel" class="tag-manager-panel" hidden>
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Tag library</p>
+              <h3>Manage tags</h3>
+            </div>
+            <button id="close-tag-panel" class="icon-button" type="button" aria-label="Close tag manager">×</button>
+          </div>
+          <form id="tag-form" class="inline-form">
+            <input id="tag-name" type="text" maxlength="32" placeholder="New tag name" autocomplete="off">
+            <button type="submit">Create</button>
+          </form>
+          <label class="search-field">
+            <span>Find tag</span>
+            <input id="tag-library-search" type="search" placeholder="Search tags">
+          </label>
+          <div id="tag-library-list" class="tag-library-list"></div>
+        </section>
+
         <section class="summary-panel">
           <div class="summary-card">
             <span class="summary-label">Entries</span>
@@ -140,27 +159,6 @@
             <button class="primary-action" type="submit">Save changes</button>
           </div>
         </form>
-      </div>
-    </div>
-
-    <div id="tag-modal" class="modal" hidden>
-      <div class="modal-card">
-        <div class="modal-header">
-          <div>
-            <p class="eyebrow">Tag library</p>
-            <h3>Manage tags</h3>
-          </div>
-          <button id="close-tag-modal" class="icon-button" type="button" aria-label="Close tag manager">×</button>
-        </div>
-        <form id="tag-form" class="inline-form">
-          <input id="tag-name" type="text" maxlength="32" placeholder="New tag name" autocomplete="off">
-          <button type="submit">Create</button>
-        </form>
-        <label class="search-field">
-          <span>Find tag</span>
-          <input id="tag-library-search" type="search" placeholder="Search tags">
-        </label>
-        <div id="tag-library-list" class="tag-library-list"></div>
       </div>
     </div>
 

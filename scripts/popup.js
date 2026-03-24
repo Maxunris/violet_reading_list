@@ -22,6 +22,7 @@ const state = {
   tagSearch: '',
   selectedTagIds: [],
   tagLibrarySearch: '',
+  tagManagerOpen: false,
   editingEntryId: null,
   editingFolderId: null,
   editingTagId: null
@@ -59,8 +60,8 @@ const elements = {
   entryFavorite: document.getElementById('entry-favorite'),
   entryPinned: document.getElementById('entry-pinned'),
   entryRead: document.getElementById('entry-read'),
-  tagModal: document.getElementById('tag-modal'),
-  closeTagModal: document.getElementById('close-tag-modal'),
+  tagManagerPanel: document.getElementById('tag-manager-panel'),
+  closeTagPanel: document.getElementById('close-tag-panel'),
   tagForm: document.getElementById('tag-form'),
   tagName: document.getElementById('tag-name'),
   tagLibrarySearch: document.getElementById('tag-library-search'),
@@ -286,6 +287,11 @@ function renderFilterButtons() {
   });
 }
 
+function renderTagManagerPanel() {
+  elements.tagManagerPanel.hidden = !state.tagManagerOpen;
+  elements.manageTags.textContent = state.tagManagerOpen ? 'Hide tags' : 'Manage tags';
+}
+
 function createBadge(label, className = '') {
   const badge = document.createElement('button');
   badge.type = 'button';
@@ -417,6 +423,7 @@ function openEntryEditor(entryId) {
     return;
   }
 
+  closeTagManager();
   state.editingEntryId = entryId;
   elements.entryId.value = entry.id;
   elements.entryTitle.value = entry.title;
@@ -441,6 +448,21 @@ function openEntryEditor(entryId) {
 function closeEntryEditor() {
   state.editingEntryId = null;
   elements.entryModal.hidden = true;
+}
+
+function openTagManager() {
+  closeEntryEditor();
+  state.tagManagerOpen = true;
+  state.editingTagId = null;
+  renderTagManagerPanel();
+  renderTagLibrary();
+}
+
+function closeTagManager() {
+  state.tagManagerOpen = false;
+  state.editingTagId = null;
+  elements.tagName.value = '';
+  renderTagManagerPanel();
 }
 
 function renderTagLibrary() {
@@ -506,6 +528,7 @@ function render() {
   renderFolders();
   renderFilterButtons();
   renderTagFilters();
+  renderTagManagerPanel();
   renderEntries();
   renderTagLibrary();
 }
@@ -621,11 +644,15 @@ document.querySelectorAll('[data-toggle-filter]').forEach(button => {
 });
 
 elements.manageTags.addEventListener('click', () => {
-  elements.tagModal.hidden = false;
+  if (state.tagManagerOpen) {
+    closeTagManager();
+    return;
+  }
+  openTagManager();
 });
 
-elements.closeTagModal.addEventListener('click', () => {
-  elements.tagModal.hidden = true;
+elements.closeTagPanel.addEventListener('click', () => {
+  closeTagManager();
 });
 
 elements.closeEntryModal.addEventListener('click', closeEntryEditor);
@@ -650,16 +677,22 @@ elements.tagLibrarySearch.addEventListener('input', event => {
 elements.entryForm.addEventListener('submit', async event => {
   event.preventDefault();
   const entryId = elements.entryId.value;
+  const nextFolderId = elements.entryFolder.value;
 
   await updateEntry(entryId, {
     title: elements.entryTitle.value,
     description: elements.entryDescription.value,
-    folderId: elements.entryFolder.value,
+    folderId: nextFolderId,
     tagNames: parseTagInput(elements.entryTags.value),
     favorite: elements.entryFavorite.checked,
     pinned: elements.entryPinned.checked,
     read: elements.entryRead.checked
   }).catch(showError);
+
+  if (state.activeView === 'folder' && nextFolderId && nextFolderId !== state.folderId) {
+    setSelectedFolder(nextFolderId);
+    await saveSelectedFolder(nextFolderId).catch(showError);
+  }
 
   closeEntryEditor();
   await syncLibrary();
@@ -683,9 +716,6 @@ window.addEventListener('click', event => {
   if (event.target === elements.entryModal) {
     closeEntryEditor();
   }
-  if (event.target === elements.tagModal) {
-    elements.tagModal.hidden = true;
-  }
 });
 
 window.addEventListener('keydown', event => {
@@ -694,8 +724,8 @@ window.addEventListener('keydown', event => {
     if (!elements.entryModal.hidden) {
       closeEntryEditor();
     }
-    if (!elements.tagModal.hidden) {
-      elements.tagModal.hidden = true;
+    if (state.tagManagerOpen) {
+      closeTagManager();
     }
   }
 

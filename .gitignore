@@ -1,0 +1,8 @@
+.DS_Store
+.idea/
+.agent/
+.claude/
+.codex/
+node_modules/
+dist/
+*.zip

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Violet Reading List Backup</title>
+    <link rel="stylesheet" href="styles/options.css">
+  </head>
+  <body>
+    <main class="options-shell">
+      <section class="hero">
+        <p class="eyebrow">Backup and transport</p>
+        <h1>Violet Reading List</h1>
+        <p>Export your library, import a backup, and check which storage area is active.</p>
+      </section>
+
+      <section class="card-grid">
+        <article class="card">
+          <h2>Export</h2>
+          <p>Download the full library as JSON.</p>
+          <button id="export-library" class="primary-action" type="button">Export library</button>
+        </article>
+
+        <article class="card">
+          <h2>Import</h2>
+          <p>Bring back a previous backup.</p>
+          <label class="inline-select">
+            <span>Mode</span>
+            <select id="import-mode">
+              <option value="merge">Merge into current library</option>
+              <option value="replace">Replace current library</option>
+            </select>
+          </label>
+          <input id="import-file" type="file" accept="application/json">
+          <button id="import-library" class="secondary-action" type="button">Import file</button>
+        </article>
+
+        <article class="card">
+          <h2>Storage</h2>
+          <p id="storage-status">Checking storage area…</p>
+          <button id="refresh-storage" class="ghost-action" type="button">Refresh</button>
+        </article>
+      </section>
+
+      <p id="status-message" class="status-message" aria-live="polite"></p>
+    </main>
+    <script type="module" src="scripts/options.js"></script>
+  </body>
+</html>

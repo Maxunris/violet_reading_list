@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Violet Reading List</title>
+    <link rel="stylesheet" href="styles/popup.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand-panel">
+          <p class="eyebrow">Organize your queue</p>
+          <h1>Violet List</h1>
+          <p class="brand-copy">Folders stay on the left. The reading pile finally behaves.</p>
+        </div>
+
+        <section class="sidebar-section">
+          <div class="section-heading">
+            <h2>Quick Views</h2>
+          </div>
+          <div class="view-list" id="view-list"></div>
+        </section>
+
+        <section class="sidebar-section">
+          <div class="section-heading">
+            <h2>Folders</h2>
+          </div>
+          <form id="folder-form" class="inline-form">
+            <input id="folder-name" name="folderName" type="text" maxlength="40" placeholder="New folder name" autocomplete="off">
+            <button type="submit">Add</button>
+          </form>
+          <div class="folder-list" id="folder-list"></div>
+        </section>
+      </aside>
+
+      <main class="main-panel">
+        <header class="toolbar">
+          <div class="toolbar-copy">
+            <p class="eyebrow">Reading stack</p>
+            <h2 id="active-scope-label">All saved entries</h2>
+          </div>
+          <div class="toolbar-actions">
+            <button id="save-current" class="primary-action" type="button">Save current tab</button>
+            <button id="open-options" class="secondary-action" type="button">Backup</button>
+          </div>
+        </header>
+
+        <section class="search-panel">
+          <label class="search-field">
+            <span>Search</span>
+            <input id="search-query" type="search" placeholder="Search title, description, URL">
+          </label>
+          <label class="search-field">
+            <span>Domain</span>
+            <input id="domain-query" type="search" placeholder="example.com">
+          </label>
+          <button id="clear-filters" class="ghost-action" type="button">Clear filters</button>
+        </section>
+
+        <section class="filter-panel">
+          <div class="filter-group">
+            <span class="filter-label">States</span>
+            <button class="pill-filter" data-toggle-filter="favorites" type="button">Favorites</button>
+            <button class="pill-filter" data-toggle-filter="pinned" type="button">Pinned</button>
+            <button class="pill-filter" data-toggle-filter="unread" type="button">Unread</button>
+          </div>
+          <div class="filter-group tag-filter-group">
+            <span class="filter-label">Tag search</span>
+            <input id="tag-search" type="search" placeholder="Filter tags">
+            <button id="manage-tags" class="ghost-action" type="button">Manage tags</button>
+          </div>
+          <div id="tag-filter-list" class="tag-filter-list"></div>
+        </section>
+
+        <section class="summary-panel">
+          <div class="summary-card">
+            <span class="summary-label">Entries</span>
+            <strong id="entry-count">0</strong>
+          </div>
+          <div class="summary-card">
+            <span class="summary-label">Unread</span>
+            <strong id="unread-count">0</strong>
+          </div>
+          <div class="summary-card">
+            <span class="summary-label">Favorites</span>
+            <strong id="favorite-count">0</strong>
+          </div>
+          <div class="summary-card">
+            <span class="summary-label">Pinned</span>
+            <strong id="pinned-count">0</strong>
+          </div>
+        </section>
+
+        <section class="entry-panel">
+          <div id="empty-state" class="empty-state" hidden>
+            <h3>Nothing matches this view</h3>
+            <p>Try another folder, clear the filters, or save the current page.</p>
+          </div>
+          <div id="entry-list" class="entry-list"></div>
+        </section>
+      </main>
+    </div>
+
+    <div id="entry-modal" class="modal" hidden>
+      <div class="modal-card">
+        <div class="modal-header">
+          <div>
+            <p class="eyebrow">Entry details</p>
+            <h3>Edit saved link</h3>
+          </div>
+          <button id="close-entry-modal" class="icon-button" type="button" aria-label="Close entry editor">×</button>
+        </div>
+        <form id="entry-form" class="modal-form">
+          <input id="entry-id" type="hidden">
+          <label>
+            <span>Title</span>
+            <input id="entry-title" type="text" maxlength="120" required>
+          </label>
+          <label>
+            <span>Description</span>
+            <textarea id="entry-description" rows="4" maxlength="280"></textarea>
+          </label>
+          <label>
+            <span>Folder</span>
+            <select id="entry-folder"></select>
+          </label>
+          <label>
+            <span>Tags</span>
+            <input id="entry-tags" type="text" placeholder="news, design, work">
+          </label>
+          <div class="toggle-row">
+            <label><input id="entry-favorite" type="checkbox"> Favorite</label>
+            <label><input id="entry-pinned" type="checkbox"> Pinned</label>
+            <label><input id="entry-read" type="checkbox"> Read</label>
+          </div>
+          <div class="modal-actions">
+            <button class="primary-action" type="submit">Save changes</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div id="tag-modal" class="modal" hidden>
+      <div class="modal-card">
+        <div class="modal-header">
+          <div>
+            <p class="eyebrow">Tag library</p>
+            <h3>Manage tags</h3>
+          </div>
+          <button id="close-tag-modal" class="icon-button" type="button" aria-label="Close tag manager">×</button>
+        </div>
+        <form id="tag-form" class="inline-form">
+          <input id="tag-name" type="text" maxlength="32" placeholder="New tag name" autocomplete="off">
+          <button type="submit">Create</button>
+        </form>
+        <label class="search-field">
+          <span>Find tag</span>
+          <input id="tag-library-search" type="search" placeholder="Search tags">
+        </label>
+        <div id="tag-library-list" class="tag-library-list"></div>
+      </div>
+    </div>
+
+    <template id="entry-template">
+      <article class="entry-card">
+        <div class="entry-main">
+          <div class="entry-favicon-wrap">
+            <img class="entry-favicon" alt="">
+          </div>
+          <div class="entry-copy">
+            <div class="entry-topline">
+              <a class="entry-title" target="_blank" rel="noreferrer"></a>
+              <div class="entry-badges"></div>
+            </div>
+            <p class="entry-description"></p>
+            <div class="entry-meta"></div>
+            <div class="entry-tags"></div>
+          </div>
+        </div>
+        <div class="entry-actions">
+          <button class="icon-button favorite-button" type="button" title="Toggle favorite">★</button>
+          <button class="icon-button pin-button" type="button" title="Toggle pin">📌</button>
+          <button class="icon-button read-button" type="button" title="Toggle read">✓</button>
+          <button class="icon-button edit-button" type="button" title="Edit entry">✎</button>
+          <button class="icon-button delete-button" type="button" title="Delete entry">🗑</button>
+        </div>
+      </article>
+    </template>
+
+    <script type="module" src="scripts/popup.js"></script>
+  </body>
+</html>

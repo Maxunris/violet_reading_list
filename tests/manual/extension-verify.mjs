@@ -178,6 +178,28 @@ function createLibraryWithFolder() {
   return library;
 }
 
+function createLibraryWithVisibleEntries() {
+  const library = createSeedLibrary();
+  const now = new Date().toISOString();
+  library.entriesById.entry_beta = {
+    id: 'entry_beta',
+    url: 'https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions',
+    title: 'WebExtensions Docs',
+    description: 'Documentation for browser extensions and APIs.',
+    domain: 'developer.mozilla.org',
+    faviconUrl: 'https://icons.duckduckgo.com/ip3/developer.mozilla.org.ico',
+    folderId: 'folder_inbox',
+    tagIds: [],
+    favorite: false,
+    pinned: false,
+    read: false,
+    createdAt: now,
+    updatedAt: now
+  };
+  library.entryOrder = ['entry_beta', 'entry_alpha'];
+  return library;
+}
+
 function createLibraryWithTagsAndFlags() {
   const library = createLibraryWithFolder();
   const now = new Date().toISOString();
@@ -253,6 +275,31 @@ try {
     if (layout.right > layout.viewportWidth) throw new Error(`save button clipped on the right: ${JSON.stringify(layout)}`);
     if (layout.left < 0 || layout.top < 0 || layout.bottom > layout.viewportHeight) throw new Error(`save button out of viewport: ${JSON.stringify(layout)}`);
     if (layout.scrollWidth > layout.viewportWidth) throw new Error(`horizontal overflow detected: ${JSON.stringify(layout)}`);
+    await popup.close();
+  });
+
+  await record('saved entries are visible without scrolling to the bottom', async () => {
+    const popup = await preparePopup(createLibraryWithVisibleEntries());
+    await popup.waitForSelector('.entry-card');
+    const layout = await popup.evaluate(() => {
+      const panel = document.getElementById('entry-list');
+      const firstCard = document.querySelector('.entry-card');
+      const panelRect = panel.getBoundingClientRect();
+      const cardRect = firstCard.getBoundingClientRect();
+      return {
+        entryCount: document.querySelectorAll('.entry-card').length,
+        panelHeight: panelRect.height,
+        panelTop: panelRect.top,
+        cardTop: cardRect.top,
+        cardBottom: cardRect.bottom,
+        viewportHeight: window.innerHeight
+      };
+    });
+    if (layout.entryCount < 1) throw new Error(`no visible entries: ${JSON.stringify(layout)}`);
+    if (layout.panelHeight < 120) throw new Error(`entry panel too small: ${JSON.stringify(layout)}`);
+    if (layout.cardTop >= layout.viewportHeight || layout.cardBottom <= 0) {
+      throw new Error(`first saved entry is not visible: ${JSON.stringify(layout)}`);
+    }
     await popup.close();
   });
 

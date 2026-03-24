@@ -8,9 +8,12 @@ const extensionPath = path.join(projectRoot, 'dist/chromium');
 const userDataDir = path.join(projectRoot, '.tmp-extension-profile-verify');
 const samplePagePath = path.join(projectRoot, '.tmp-sample-page-verify.html');
 const exportPath = path.join(projectRoot, '.tmp-export-verify.json');
+const screenshotDir = path.join(projectRoot, '.tmp-verify-shots');
 
 await rm(userDataDir, { recursive: true, force: true });
+await rm(screenshotDir, { recursive: true, force: true });
 await mkdir(userDataDir, { recursive: true });
+await mkdir(screenshotDir, { recursive: true });
 await writeFile(
   samplePagePath,
   '<!doctype html><html><head><title>Alpha Article</title><meta name="description" content="A focused page for extension testing."><link rel="icon" href="https://example.com/favicon.ico"></head><body><main><h1>Alpha Article</h1><a id="beta" href="https://beta.example.com/story">Beta Story</a></main></body></html>'
@@ -74,6 +77,17 @@ async function record(name, fn) {
 
 function step(message) {
   console.error(`  -> ${message}`);
+}
+
+let screenshotIndex = 0;
+
+async function captureStep(page, slug) {
+  screenshotIndex += 1;
+  const filename = `${String(screenshotIndex).padStart(2, '0')}-${slug}.png`;
+  await page.screenshot({
+    path: path.join(screenshotDir, filename),
+    fullPage: false
+  });
 }
 
 async function openPopup() {
@@ -249,14 +263,14 @@ function createLibraryWithTagsAndFlags() {
   library.tagOrder = ['tag_urgent', 'tag_reading'];
   library.entriesById.entry_alpha = {
     ...library.entriesById.entry_alpha,
-    folderId: 'folder_research',
+    folderId: 'folder_inbox',
     tagIds: ['tag_urgent', 'tag_reading'],
     favorite: true,
     pinned: true,
     read: true,
     description: 'Updated description for smoke test'
   };
-  library.settings.selectedFolderId = 'folder_research';
+  library.settings.selectedFolderId = 'folder_inbox';
   return library;
 }
 
@@ -277,11 +291,22 @@ function createLibraryWithManyFolders() {
   return library;
 }
 
+function createLibraryWithLongTitle() {
+  const library = createSeedLibrary();
+  library.entriesById.entry_alpha = {
+    ...library.entriesById.entry_alpha,
+    title: 'Very long saved page title that keeps going so the action controls must stay visible and clickable on the right side of the card for edit and delete actions',
+    description: 'Saved from a source with a very long title.'
+  };
+  return library;
+}
+
 try {
   await seedLibrary(createSeedLibrary());
 
   await record('entry modal stays hidden on first popup render', async () => {
     const popup = await preparePopup(createSeedLibrary());
+    await captureStep(popup, 'initial-popup');
     const hidden = await popup.locator('#entry-modal').evaluate(node => node.hidden);
     const display = await popup.locator('#entry-modal').evaluate(node => getComputedStyle(node).display);
     if (!hidden) throw new Error('entry modal is not hidden on first render');
@@ -305,6 +330,7 @@ try {
     const popup = await preparePopup(createSeedLibrary());
     await popup.setViewportSize({ width: 780, height: 640 });
     await popup.waitForTimeout(100);
+    await captureStep(popup, 'compact-layout');
     const layout = await popup.evaluate(() => {
       const button = document.getElementById('save-current');
       const rect = button.getBoundingClientRect();
@@ -319,7 +345,7 @@ try {
         scrollWidth: document.documentElement.scrollWidth
       };
     });
-    if (layout.label !== '+ Save tab') throw new Error(`unexpected save button label ${layout.label}`);
+    if (layout.label !== 'Save Current Tab') throw new Error(`unexpected save button label ${layout.label}`);
     if (layout.right > layout.viewportWidth) throw new Error(`save button clipped on the right: ${JSON.stringify(layout)}`);
     if (layout.left < 0 || layout.top < 0 || layout.bottom > layout.viewportHeight) throw new Error(`save button out of viewport: ${JSON.stringify(layout)}`);
     if (layout.scrollWidth > layout.viewportWidth) throw new Error(`horizontal overflow detected: ${JSON.stringify(layout)}`);
@@ -329,6 +355,7 @@ try {
   await record('saved entries show at least four visible cards in the right pane', async () => {
     const popup = await preparePopup(createLibraryWithVisibleEntries());
     await popup.waitForSelector('.entry-card');
+    await captureStep(popup, 'entry-list-visible');
     const layout = await popup.evaluate(() => {
       const panel = document.getElementById('entry-list');
       const panelRect = panel.getBoundingClientRect();
@@ -354,6 +381,7 @@ try {
 
   await record('left sidebar scrolls independently from the entry list', async () => {
     const popup = await preparePopup(createLibraryWithManyFolders());
+    await captureStep(popup, 'sidebar-before-scroll');
     const scrollState = await popup.evaluate(() => {
       const sidebar = document.querySelector('.sidebar');
       const entryList = document.getElementById('entry-list');
@@ -381,6 +409,16 @@ try {
     if (scrollState.after.entryTop !== scrollState.before.entryTop) {
       throw new Error(`entry list scroll changed together with sidebar: ${JSON.stringify(scrollState)}`);
     }
+    await captureStep(popup, 'sidebar-after-scroll');
+    await popup.close();
+  });
+
+  await record('popup starts from inbox on open', async () => {
+    const popup = await preparePopup(createLibraryWithFolder());
+    const activeLabel = await popup.locator('#active-scope-label').textContent();
+    const inboxActive = await popup.locator('.folder-row.active .sidebar-button').first().textContent();
+    if (activeLabel?.trim() !== 'Inbox') throw new Error(`expected Inbox scope, got ${activeLabel}`);
+    if (inboxActive?.trim() !== 'Inbox') throw new Error(`expected Inbox folder active, got ${inboxActive}`);
     await popup.close();
   });
 
@@ -409,6 +447,24 @@ try {
     await popup.waitForTimeout(200);
     const renamed = popup.locator('.folder-row', { hasText: 'Deep Research' }).first();
     if (await renamed.count() !== 1) throw new Error('renamed folder not rendered');
+    await popup.close();
+  });
+
+  await record('folder names must stay unique on create and rename', async () => {
+    const popup = await preparePopup(createLibraryWithFolder());
+    await popup.locator('#folder-name').fill('Inbox');
+    await popup.locator('#folder-form').evaluate(form => form.requestSubmit());
+    await popup.waitForTimeout(200);
+    const createStatus = await popup.locator('#status-strip').textContent();
+    if (!createStatus?.includes('unique')) throw new Error(`expected duplicate folder error, got ${createStatus}`);
+
+    const folderRow = popup.locator('.folder-row', { hasText: 'Deep Research' }).first();
+    await folderRow.locator('.micro-button').first().dispatchEvent('click');
+    await popup.locator('.inline-rename-input').fill('Inbox');
+    await popup.locator('.inline-rename-form').evaluate(form => form.requestSubmit());
+    await popup.waitForTimeout(200);
+    const renameStatus = await popup.locator('#status-strip').textContent();
+    if (!renameStatus?.includes('unique')) throw new Error(`expected duplicate rename error, got ${renameStatus}`);
     await popup.close();
   });
 
@@ -496,6 +552,30 @@ try {
     await popup.close();
   });
 
+  await record('long entry titles keep action buttons visible', async () => {
+    const popup = await preparePopup(createLibraryWithLongTitle());
+    await popup.waitForSelector('.entry-card');
+    await captureStep(popup, 'long-title-actions');
+    const layout = await popup.evaluate(() => {
+      const card = document.querySelector('.entry-card');
+      const actions = card.querySelector('.entry-actions');
+      const buttons = actions.querySelectorAll('button');
+      const cardRect = card.getBoundingClientRect();
+      const actionsRect = actions.getBoundingClientRect();
+      return {
+        buttonCount: buttons.length,
+        cardRight: cardRect.right,
+        actionsRight: actionsRect.right,
+        actionsLeft: actionsRect.left
+      };
+    });
+    if (layout.buttonCount < 5) throw new Error(`missing action buttons: ${JSON.stringify(layout)}`);
+    if (layout.actionsLeft <= 0 || layout.actionsRight > layout.cardRight + 1) {
+      throw new Error(`action buttons are clipped: ${JSON.stringify(layout)}`);
+    }
+    await popup.close();
+  });
+
   await record('search by text narrows results', async () => {
     const popup = await preparePopup(createLibraryWithTagsAndFlags());
     await popup.waitForSelector('.entry-card');
@@ -526,6 +606,7 @@ try {
     seeded.entriesById.entry_alpha.folderId = 'folder_research';
     seeded.settings.selectedFolderId = 'folder_research';
     const popup = await preparePopup(seeded);
+    await popup.locator('.folder-row', { hasText: 'Deep Research' }).locator('.sidebar-button').dispatchEvent('click');
     await popup.waitForSelector('.entry-card');
     const row = popup.locator('.folder-row', { hasText: 'Deep Research' }).first();
     await popup.evaluate(() => { window.confirm = () => true; });
@@ -568,6 +649,14 @@ try {
     await popup.keyboard.press('Escape');
     const hidden = await popup.locator('#entry-modal').evaluate(node => node.hidden);
     if (!hidden) throw new Error('entry modal stayed open after Escape');
+    await popup.close();
+  });
+
+  await record('backup action is removed from popup toolbar', async () => {
+    const popup = await preparePopup(createSeedLibrary());
+    if (await popup.locator('#open-options').count() !== 0) {
+      throw new Error('backup button still rendered in popup');
+    }
     await popup.close();
   });
 
@@ -617,4 +706,5 @@ try {
   await rm(userDataDir, { recursive: true, force: true });
   await rm(samplePagePath, { force: true });
   await rm(exportPath, { force: true });
+  await rm(screenshotDir, { recursive: true, force: true });
 }

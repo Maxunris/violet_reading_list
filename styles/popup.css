@@ -70,7 +70,6 @@ button {
   overflow-y: auto;
 }
 
-.brand-panel,
 .sidebar-section,
 .toolbar,
 .search-panel,
@@ -80,7 +79,6 @@ button {
   backdrop-filter: blur(18px);
 }
 
-.brand-panel,
 .sidebar-section {
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -88,7 +86,6 @@ button {
   padding: 14px;
 }
 
-.brand-panel h1,
 .toolbar h2,
 .modal-header h3 {
   margin: 0;
@@ -300,6 +297,13 @@ button {
   justify-content: flex-start;
 }
 
+.hero-action {
+  padding: 11px 18px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  box-shadow: 0 16px 28px rgba(98, 41, 217, 0.28);
+}
+
 .search-panel,
 .filter-panel {
   padding: 8px 12px;
@@ -412,7 +416,7 @@ button {
 
 .entry-card {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 6px;
   padding: 8px 10px;
   border-radius: 14px;
@@ -432,6 +436,7 @@ button {
 .entry-main {
   display: flex;
   gap: 6px;
+  min-width: 0;
 }
 
 .entry-favicon-wrap {
@@ -462,6 +467,7 @@ button {
   gap: 6px;
   align-items: center;
   justify-content: space-between;
+  min-width: 0;
 }
 
 .entry-title {
@@ -508,21 +514,24 @@ button {
 .entry-actions {
   display: flex;
   align-items: center;
-  gap: 4px;
-  flex-wrap: wrap;
+  align-self: start;
+  gap: 3px;
+  flex-direction: row;
+  flex-wrap: nowrap;
   justify-content: flex-end;
+  flex: none;
 }
 
 .icon-button {
   border: 0;
-  width: 26px;
-  height: 26px;
+  width: 22px;
+  height: 22px;
   display: grid;
   place-items: center;
-  border-radius: 8px;
+  border-radius: 7px;
   background: rgba(127, 61, 255, 0.08);
   color: var(--accent-strong);
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .icon-button.active {

@@ -37,7 +37,6 @@ const elements = {
   emptyState: document.getElementById('empty-state'),
   activeScopeLabel: document.getElementById('active-scope-label'),
   saveCurrent: document.getElementById('save-current'),
-  openOptions: document.getElementById('open-options'),
   entryTemplate: document.getElementById('entry-template'),
   entryModal: document.getElementById('entry-modal'),
   closeEntryModal: document.getElementById('close-entry-modal'),
@@ -517,7 +516,7 @@ function createInlineRenameForm({ initialValue, onSubmit, onCancel }) {
 
 async function syncLibrary() {
   state.library = await loadLibrary();
-  state.folderId = state.library.settings.selectedFolderId || state.folderId;
+  state.folderId = state.library.foldersById[state.folderId] ? state.folderId : DEFAULT_FOLDER_ID;
   render();
 }
 
@@ -635,10 +634,6 @@ elements.saveCurrent.addEventListener('click', async () => {
   showStatus('Current tab saved.', 'success');
 });
 
-elements.openOptions.addEventListener('click', () => {
-  chrome.runtime.openOptionsPage();
-});
-
 window.addEventListener('click', event => {
   if (event.target === elements.entryModal) {
     closeEntryEditor();
@@ -666,7 +661,7 @@ async function init() {
   closeEntryEditor();
   closeTagManager();
   state.library = await loadLibrary();
-  state.folderId = state.library.settings.selectedFolderId || DEFAULT_FOLDER_ID;
+  state.folderId = DEFAULT_FOLDER_ID;
   state.activeView = 'folder';
   render();
 }

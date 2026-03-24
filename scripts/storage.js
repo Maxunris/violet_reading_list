@@ -125,6 +125,20 @@ function sanitizeFolderName(name) {
   return normalizeText(name).replace(/\s+/g, ' ').slice(0, 40);
 }
 
+function folderNameExists(library, name, excludeFolderId = null) {
+  const normalized = sanitizeFolderName(name).toLowerCase();
+  if (!normalized) {
+    return false;
+  }
+
+  return Object.values(library.foldersById).some(folder => {
+    if (!folder || folder.id === excludeFolderId) {
+      return false;
+    }
+    return sanitizeFolderName(folder.name).toLowerCase() === normalized;
+  });
+}
+
 export function normalizeLibrary(source) {
   const base = createDefaultLibrary();
   const incoming = source ? cloneLibrary(source) : base;
@@ -361,6 +375,9 @@ export async function createFolder(name) {
   if (!cleanName) {
     throw new Error('Folder name cannot be empty.');
   }
+  if (folderNameExists(library, cleanName)) {
+    throw new Error('Folder name must be unique.');
+  }
   const folderId = createId('folder');
   library.foldersById[folderId] = {
     id: folderId,
@@ -381,6 +398,9 @@ export async function renameFolder(folderId, name) {
   const cleanName = sanitizeFolderName(name);
   if (!cleanName) {
     throw new Error('Folder name cannot be empty.');
+  }
+  if (folderNameExists(library, cleanName, folderId)) {
+    throw new Error('Folder name must be unique.');
   }
   library.foldersById[folderId].name = cleanName;
   library.foldersById[folderId].updatedAt = now();

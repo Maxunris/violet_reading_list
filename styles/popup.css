@@ -25,12 +25,15 @@
   box-sizing: border-box;
 }
 
+html {
+  width: 760px;
+  height: 580px;
+}
+
 body {
   margin: 0;
-  width: 780px;
-  min-height: 640px;
-  max-width: 100vw;
-  max-height: 100vh;
+  width: 760px;
+  height: 580px;
   overflow: hidden;
   background:
     radial-gradient(circle at top left, rgba(149, 93, 255, 0.25), transparent 30%),
@@ -53,8 +56,7 @@ button {
 .app-shell {
   display: grid;
   grid-template-columns: 272px minmax(0, 1fr);
-  min-height: 640px;
-  max-height: 100vh;
+  height: 580px;
 }
 
 .sidebar {
@@ -658,15 +660,9 @@ button {
   color: rgba(255, 255, 255, 0.55);
 }
 
-@media (max-width: 840px) {
-  body {
-    width: 760px;
-    min-height: 620px;
-  }
-
+@media (max-width: 720px) {
   .app-shell {
     grid-template-columns: 248px minmax(0, 1fr);
-    min-height: 620px;
   }
 
   .sidebar {

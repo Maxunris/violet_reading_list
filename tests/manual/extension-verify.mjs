@@ -219,6 +219,18 @@ try {
     await popup.close();
   });
 
+  await record('popup root keeps fixed extension width', async () => {
+    const popup = await preparePopup(createSeedLibrary());
+    const sizing = await popup.evaluate(() => ({
+      htmlWidth: parseFloat(getComputedStyle(document.documentElement).width),
+      bodyWidth: parseFloat(getComputedStyle(document.body).width)
+    }));
+    if (sizing.htmlWidth < 740 || sizing.bodyWidth < 740) {
+      throw new Error(`popup root width collapsed: ${JSON.stringify(sizing)}`);
+    }
+    await popup.close();
+  });
+
   await record('compact popup layout keeps save button visible', async () => {
     const popup = await preparePopup(createSeedLibrary());
     await popup.setViewportSize({ width: 780, height: 640 });

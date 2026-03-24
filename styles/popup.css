@@ -371,6 +371,13 @@ button {
   color: var(--accent-strong);
 }
 
+.pill-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 600;
+}
+
 .badge {
   cursor: default;
 }

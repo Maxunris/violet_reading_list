@@ -38,6 +38,19 @@ Violet Reading List is a cross-browser reading-list extension focused on organiz
 3. Click `Load Temporary Add-on`
 4. Select `manifest.json` from this repository
 
+## Build Release Packages
+
+```bash
+npm run build
+```
+
+This creates:
+
+- `dist/chromium/`
+- `dist/firefox/`
+- `dist/violet-reading-list-chromium.zip`
+- `dist/violet-reading-list-firefox.zip`
+
 ## Notes
 
 - The extension stores library data in browser-managed extension storage, preferring sync when available.

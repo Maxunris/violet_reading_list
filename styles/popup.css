@@ -213,6 +213,11 @@ button {
   border: 1px solid transparent;
 }
 
+.folder-row.editing,
+.tag-library-item.editing {
+  grid-template-columns: 1fr;
+}
+
 .view-row.active,
 .folder-row.active {
   background: rgba(255, 255, 255, 0.18);
@@ -551,4 +556,31 @@ button {
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.86);
   border: 1px solid rgba(127, 61, 255, 0.12);
+}
+
+.inline-rename-form {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 8px;
+  width: 100%;
+}
+
+.inline-rename-input {
+  width: 100%;
+  min-width: 0;
+  border-radius: 12px;
+  border: 1px solid rgba(127, 61, 255, 0.18);
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--text);
+  padding: 10px 12px;
+}
+
+.folder-row .inline-rename-input {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+.folder-row .inline-rename-input::placeholder {
+  color: rgba(255, 255, 255, 0.55);
 }

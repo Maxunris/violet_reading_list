@@ -22,7 +22,9 @@ const state = {
   tagSearch: '',
   selectedTagIds: [],
   tagLibrarySearch: '',
-  editingEntryId: null
+  editingEntryId: null,
+  editingFolderId: null,
+  editingTagId: null
 };
 
 const elements = {
@@ -62,7 +64,8 @@ const elements = {
   tagForm: document.getElementById('tag-form'),
   tagName: document.getElementById('tag-name'),
   tagLibrarySearch: document.getElementById('tag-library-search'),
-  tagLibraryList: document.getElementById('tag-library-list')
+  tagLibraryList: document.getElementById('tag-library-list'),
+  inlineRenameTemplate: document.getElementById('inline-rename-template')
 };
 
 function getTags(library) {
@@ -194,6 +197,24 @@ function renderFolders() {
     const row = document.createElement('div');
     row.className = `folder-row${state.activeView === 'folder' && state.folderId === folder.id ? ' active' : ''}`;
 
+    if (state.editingFolderId === folder.id) {
+      row.classList.add('editing');
+      row.appendChild(createInlineRenameForm({
+        initialValue: folder.name,
+        onSubmit: async nextName => {
+          await renameFolder(folder.id, nextName).catch(showError);
+          state.editingFolderId = null;
+          await syncLibrary();
+        },
+        onCancel: () => {
+          state.editingFolderId = null;
+          render();
+        }
+      }));
+      elements.folderList.appendChild(row);
+      return;
+    }
+
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'sidebar-button';
@@ -209,13 +230,10 @@ function renderFolders() {
     renameButton.className = 'micro-button';
     renameButton.textContent = '✎';
     renameButton.disabled = folder.system;
-    renameButton.addEventListener('click', async () => {
-      const nextName = window.prompt('Rename folder', folder.name);
-      if (nextName === null) {
-        return;
-      }
-      await renameFolder(folder.id, nextName).catch(showError);
-      await syncLibrary();
+    renameButton.addEventListener('click', () => {
+      state.editingFolderId = folder.id;
+      state.editingTagId = null;
+      render();
     });
 
     const deleteButton = document.createElement('button');
@@ -411,6 +429,24 @@ function renderTagLibrary() {
       const row = document.createElement('div');
       row.className = 'tag-library-item';
 
+      if (state.editingTagId === tag.id) {
+        row.classList.add('editing');
+        row.appendChild(createInlineRenameForm({
+          initialValue: tag.name,
+          onSubmit: async nextName => {
+            await renameTag(tag.id, nextName).catch(showError);
+            state.editingTagId = null;
+            await syncLibrary();
+          },
+          onCancel: () => {
+            state.editingTagId = null;
+            renderTagLibrary();
+          }
+        }));
+        elements.tagLibraryList.appendChild(row);
+        return;
+      }
+
       const name = document.createElement('span');
       name.textContent = tag.name;
 
@@ -418,13 +454,10 @@ function renderTagLibrary() {
       renameButton.type = 'button';
       renameButton.className = 'micro-button';
       renameButton.textContent = '✎';
-      renameButton.addEventListener('click', async () => {
-        const nextName = window.prompt('Rename tag', tag.name);
-        if (nextName === null) {
-          return;
-        }
-        await renameTag(tag.id, nextName).catch(showError);
-        await syncLibrary();
+      renameButton.addEventListener('click', () => {
+        state.editingTagId = tag.id;
+        state.editingFolderId = null;
+        renderTagLibrary();
       });
 
       const deleteButton = document.createElement('button');
@@ -461,6 +494,27 @@ function showError(error) {
   window.alert(error.message || String(error));
 }
 
+function createInlineRenameForm({ initialValue, onSubmit, onCancel }) {
+  const fragment = elements.inlineRenameTemplate.content.cloneNode(true);
+  const form = fragment.querySelector('.inline-rename-form');
+  const input = fragment.querySelector('.inline-rename-input');
+  const cancelButton = fragment.querySelector('.inline-cancel-button');
+
+  input.value = initialValue;
+  window.setTimeout(() => {
+    input.focus();
+    input.select();
+  }, 0);
+
+  form.addEventListener('submit', async event => {
+    event.preventDefault();
+    await onSubmit(input.value);
+  });
+
+  cancelButton.addEventListener('click', onCancel);
+  return form;
+}
+
 async function syncLibrary() {
   state.library = await loadLibrary();
   state.folderId = state.library.settings.selectedFolderId || state.folderId;
@@ -487,6 +541,7 @@ elements.folderForm.addEventListener('submit', async event => {
   event.preventDefault();
   await createFolder(elements.folderName.value).catch(showError);
   elements.folderName.value = '';
+  state.editingFolderId = null;
   await syncLibrary();
 });
 
@@ -539,6 +594,7 @@ elements.tagForm.addEventListener('submit', async event => {
   event.preventDefault();
   await createTag(elements.tagName.value).catch(showError);
   elements.tagName.value = '';
+  state.editingTagId = null;
   await syncLibrary();
 });
 

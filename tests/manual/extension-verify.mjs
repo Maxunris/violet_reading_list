@@ -219,6 +219,31 @@ try {
     await popup.close();
   });
 
+  await record('compact popup layout keeps save button visible', async () => {
+    const popup = await preparePopup(createSeedLibrary());
+    await popup.setViewportSize({ width: 780, height: 640 });
+    await popup.waitForTimeout(100);
+    const layout = await popup.evaluate(() => {
+      const button = document.getElementById('save-current');
+      const rect = button.getBoundingClientRect();
+      return {
+        label: button.textContent?.trim() || '',
+        right: rect.right,
+        left: rect.left,
+        top: rect.top,
+        bottom: rect.bottom,
+        viewportWidth: window.innerWidth,
+        viewportHeight: window.innerHeight,
+        scrollWidth: document.documentElement.scrollWidth
+      };
+    });
+    if (layout.label !== '+ Save tab') throw new Error(`unexpected save button label ${layout.label}`);
+    if (layout.right > layout.viewportWidth) throw new Error(`save button clipped on the right: ${JSON.stringify(layout)}`);
+    if (layout.left < 0 || layout.top < 0 || layout.bottom > layout.viewportHeight) throw new Error(`save button out of viewport: ${JSON.stringify(layout)}`);
+    if (layout.scrollWidth > layout.viewportWidth) throw new Error(`horizontal overflow detected: ${JSON.stringify(layout)}`);
+    await popup.close();
+  });
+
   await record('popup renders seeded entry with readable metadata', async () => {
     const popup = await preparePopup(createSeedLibrary());
     await popup.waitForSelector('.entry-card');

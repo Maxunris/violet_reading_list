@@ -65,8 +65,11 @@ const elements = {
   tagName: document.getElementById('tag-name'),
   tagLibrarySearch: document.getElementById('tag-library-search'),
   tagLibraryList: document.getElementById('tag-library-list'),
-  inlineRenameTemplate: document.getElementById('inline-rename-template')
+  inlineRenameTemplate: document.getElementById('inline-rename-template'),
+  statusStrip: document.getElementById('status-strip')
 };
+
+let statusTimer = null;
 
 function getTags(library) {
   return library.tagOrder
@@ -284,7 +287,8 @@ function renderFilterButtons() {
 }
 
 function createBadge(label, className = '') {
-  const badge = document.createElement('span');
+  const badge = document.createElement('button');
+  badge.type = 'button';
   badge.className = `badge ${className}`.trim();
   badge.textContent = label;
   return badge;
@@ -335,11 +339,23 @@ function renderEntries() {
     });
 
     description.textContent = entry.description;
-    meta.append(
-      createBadge(folderLabel(state.library, entry.folderId)),
-      createBadge(entry.domain || 'saved link'),
-      createBadge(entry.read ? 'Read' : 'Unread')
-    );
+    const folderBadge = createBadge(folderLabel(state.library, entry.folderId), 'interactive');
+    const domainBadge = createBadge(entry.domain || 'saved link', 'interactive');
+    const readBadge = createBadge(entry.read ? 'Read' : 'Unread');
+
+    folderBadge.addEventListener('click', async () => {
+      setSelectedFolder(entry.folderId);
+      await saveSelectedFolder(entry.folderId);
+      render();
+    });
+
+    domainBadge.addEventListener('click', () => {
+      state.domainQuery = entry.domain || '';
+      elements.domainQuery.value = state.domainQuery;
+      render();
+    });
+
+    meta.append(folderBadge, domainBadge, readBadge);
 
     if (entry.favorite) {
       badges.appendChild(createBadge('Favorite', 'favorite'));
@@ -353,7 +369,14 @@ function renderEntries() {
       if (!tag) {
         return;
       }
-      tags.appendChild(createBadge(`#${tag.name}`));
+      const tagBadge = createBadge(`#${tag.name}`, 'interactive');
+      tagBadge.addEventListener('click', () => {
+        if (!state.selectedTagIds.includes(tag.id)) {
+          state.selectedTagIds = [...state.selectedTagIds, tag.id];
+        }
+        render();
+      });
+      tags.appendChild(tagBadge);
     });
 
     favoriteButton.classList.toggle('active', entry.favorite);
@@ -491,7 +514,19 @@ function showError(error) {
   if (!error) {
     return;
   }
-  window.alert(error.message || String(error));
+  showStatus(error.message || String(error), 'error');
+}
+
+function showStatus(message, tone = 'info') {
+  if (statusTimer) {
+    window.clearTimeout(statusTimer);
+  }
+  elements.statusStrip.textContent = message;
+  elements.statusStrip.dataset.tone = tone;
+  elements.statusStrip.hidden = false;
+  statusTimer = window.setTimeout(() => {
+    elements.statusStrip.hidden = true;
+  }, 2800);
 }
 
 function createInlineRenameForm({ initialValue, onSubmit, onCancel }) {
@@ -539,10 +574,14 @@ async function saveCurrentTab() {
 
 elements.folderForm.addEventListener('submit', async event => {
   event.preventDefault();
-  await createFolder(elements.folderName.value).catch(showError);
+  const created = await createFolder(elements.folderName.value).catch(showError);
+  if (!created) {
+    return;
+  }
   elements.folderName.value = '';
   state.editingFolderId = null;
   await syncLibrary();
+  showStatus('Folder created.', 'success');
 });
 
 elements.searchQuery.addEventListener('input', event => {
@@ -570,6 +609,7 @@ elements.clearFilters.addEventListener('click', () => {
   elements.domainQuery.value = '';
   elements.tagSearch.value = '';
   render();
+  showStatus('Filters cleared.');
 });
 
 document.querySelectorAll('[data-toggle-filter]').forEach(button => {
@@ -592,10 +632,14 @@ elements.closeEntryModal.addEventListener('click', closeEntryEditor);
 
 elements.tagForm.addEventListener('submit', async event => {
   event.preventDefault();
-  await createTag(elements.tagName.value).catch(showError);
+  const created = await createTag(elements.tagName.value).catch(showError);
+  if (!created) {
+    return;
+  }
   elements.tagName.value = '';
   state.editingTagId = null;
   await syncLibrary();
+  showStatus('Tag created.', 'success');
 });
 
 elements.tagLibrarySearch.addEventListener('input', event => {
@@ -619,11 +663,16 @@ elements.entryForm.addEventListener('submit', async event => {
 
   closeEntryEditor();
   await syncLibrary();
+  showStatus('Entry updated.', 'success');
 });
 
 elements.saveCurrent.addEventListener('click', async () => {
-  await saveCurrentTab().catch(showError);
+  const saved = await saveCurrentTab().catch(showError);
+  if (!saved) {
+    return;
+  }
   await syncLibrary();
+  showStatus('Current tab saved.', 'success');
 });
 
 elements.openOptions.addEventListener('click', () => {
@@ -636,6 +685,23 @@ window.addEventListener('click', event => {
   }
   if (event.target === elements.tagModal) {
     elements.tagModal.hidden = true;
+  }
+});
+
+window.addEventListener('keydown', event => {
+  const activeTag = document.activeElement?.tagName || '';
+  if (event.key === 'Escape') {
+    if (!elements.entryModal.hidden) {
+      closeEntryEditor();
+    }
+    if (!elements.tagModal.hidden) {
+      elements.tagModal.hidden = true;
+    }
+  }
+
+  if (event.key === '/' && !['INPUT', 'TEXTAREA', 'SELECT'].includes(activeTag)) {
+    event.preventDefault();
+    elements.searchQuery.focus();
   }
 });
 

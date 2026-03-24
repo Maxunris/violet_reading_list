@@ -736,6 +736,8 @@ window.addEventListener('keydown', event => {
 });
 
 async function init() {
+  closeEntryEditor();
+  closeTagManager();
   state.library = await loadLibrary();
   state.folderId = state.library.settings.selectedFolderId || DEFAULT_FOLDER_ID;
   state.activeView = 'folder';

@@ -541,6 +541,13 @@ button {
   z-index: 20;
 }
 
+.status-strip[hidden],
+.tag-manager-panel[hidden],
+.empty-state[hidden],
+.modal[hidden] {
+  display: none !important;
+}
+
 .status-strip[data-tone="success"] {
   background: rgba(46, 159, 107, 0.95);
 }

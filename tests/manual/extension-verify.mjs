@@ -210,6 +210,15 @@ function createLibraryWithTagsAndFlags() {
 try {
   await seedLibrary(createSeedLibrary());
 
+  await record('entry modal stays hidden on first popup render', async () => {
+    const popup = await preparePopup(createSeedLibrary());
+    const hidden = await popup.locator('#entry-modal').evaluate(node => node.hidden);
+    const display = await popup.locator('#entry-modal').evaluate(node => getComputedStyle(node).display);
+    if (!hidden) throw new Error('entry modal is not hidden on first render');
+    if (display !== 'none') throw new Error(`entry modal display should be none, got ${display}`);
+    await popup.close();
+  });
+
   await record('popup renders seeded entry with readable metadata', async () => {
     const popup = await preparePopup(createSeedLibrary());
     await popup.waitForSelector('.entry-card');
@@ -399,6 +408,20 @@ try {
     await popup.keyboard.press('Escape');
     const hidden = await popup.locator('#entry-modal').evaluate(node => node.hidden);
     if (!hidden) throw new Error('entry modal stayed open after Escape');
+    await popup.close();
+  });
+
+  await record('entry modal close button hides the editor', async () => {
+    const popup = await preparePopup(createSeedLibrary());
+    await popup.waitForSelector('.entry-card');
+    await popup.locator('.entry-card .edit-button').first().dispatchEvent('click');
+    await popup.waitForTimeout(100);
+    await popup.locator('#close-entry-modal').dispatchEvent('click');
+    await popup.waitForTimeout(100);
+    const hidden = await popup.locator('#entry-modal').evaluate(node => node.hidden);
+    const display = await popup.locator('#entry-modal').evaluate(node => getComputedStyle(node).display);
+    if (!hidden) throw new Error('entry modal stayed open after close button');
+    if (display !== 'none') throw new Error(`entry modal display should be none after close, got ${display}`);
     await popup.close();
   });
 

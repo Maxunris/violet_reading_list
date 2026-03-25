@@ -13,7 +13,7 @@
 7. The right pane shows at least four saved links without requiring an initial scroll.
 8. The left sidebar scrolls independently from the saved-links pane.
 9. The popup always starts in the `Inbox` folder.
-10. Saved links show a visible hover treatment and open in a new browser window from the main list.
+10. Saved links show a visible hover treatment and open in a new tab from the main list.
 11. Folder creation and inline rename update the sidebar correctly.
 12. Folder names stay unique on both create and rename flows.
 13. Tag creation, inline rename, and deletion work through the tag manager panel.

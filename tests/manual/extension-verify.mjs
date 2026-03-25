@@ -471,7 +471,7 @@ try {
     await popup.close();
   });
 
-  await record('saved link hover state is visible and clicking opens a new browser window', async () => {
+  await record('saved link hover state is visible and clicking opens a new tab', async () => {
     const popup = await preparePopup(createSeedLibrary());
     await popup.waitForSelector('.entry-card');
     const borderBefore = await popup.locator('.entry-card').first().evaluate(node => getComputedStyle(node).borderColor);

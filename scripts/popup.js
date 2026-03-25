@@ -520,14 +520,20 @@ function renderEntryTagEditor() {
   });
 }
 
-async function openBrowserWindow(url) {
-  if (globalThis.browser?.windows?.create) {
-    await globalThis.browser.windows.create({ url });
-    return;
-  }
+async function openBrowserTab(url) {
+  const activeTabs = await new Promise(resolve => {
+    extensionApi.tabs.query({ active: true, currentWindow: true }, tabs => {
+      resolve(tabs || []);
+    });
+  });
+  const currentWindowId = activeTabs[0]?.windowId;
 
   await new Promise((resolve, reject) => {
-    extensionApi.windows.create({ url }, () => {
+    extensionApi.tabs.create({
+      url,
+      active: true,
+      ...(typeof currentWindowId === 'number' ? { windowId: currentWindowId } : {})
+    }, () => {
       const runtime = globalThis.chrome?.runtime;
       if (runtime?.lastError) {
         reject(new Error(runtime.lastError.message));
@@ -539,7 +545,7 @@ async function openBrowserWindow(url) {
 }
 
 function openLink(entry) {
-  openBrowserWindow(entry.url).catch(showError);
+  openBrowserTab(entry.url).catch(showError);
   if (!entry.read) {
     toggleEntryFlag(entry.id, 'read').then(syncLibrary).catch(showError);
   }

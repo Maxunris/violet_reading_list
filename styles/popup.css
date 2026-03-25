@@ -215,7 +215,7 @@ button {
 .view-row,
 .folder-row {
   display: grid;
-  grid-template-columns: 1fr auto auto;
+  grid-template-columns: minmax(0, 1fr) 36px 36px;
   gap: 8px;
   align-items: center;
   padding: 9px 12px;
@@ -288,11 +288,18 @@ button {
 }
 
 .folder-button {
-  display: inline-flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
   gap: 10px;
   width: 100%;
+  min-width: 0;
+}
+
+.folder-name {
+  min-width: 0;
+  line-height: 1.2;
+  word-break: break-word;
 }
 
 .folder-count {
@@ -315,7 +322,12 @@ button {
 .micro-button {
   background: rgba(255, 255, 255, 0.12);
   color: white;
+  width: 36px;
   min-width: 36px;
+  min-height: 36px;
+  padding: 0;
+  display: grid;
+  place-items: center;
 }
 
 .micro-button:disabled {

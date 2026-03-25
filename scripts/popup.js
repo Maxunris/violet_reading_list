@@ -370,6 +370,7 @@ function renderFolders() {
     button.type = 'button';
     button.className = 'sidebar-button folder-button';
     const name = document.createElement('span');
+    name.className = 'folder-name';
     name.textContent = folderLabel(folder.id);
     const count = document.createElement('span');
     count.className = 'folder-count';

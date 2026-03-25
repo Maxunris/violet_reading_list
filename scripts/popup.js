@@ -1,4 +1,6 @@
 import { DEFAULT_FOLDER_ID, QUICK_VIEWS } from './constants.js';
+import { extensionApi } from './browser-api.js';
+import { getAvailableLanguages, normalizeLanguage, t } from './i18n.js';
 import {
   createFolder,
   createTag,
@@ -10,13 +12,15 @@ import {
   renameTag,
   saveSelectedFolder,
   toggleEntryFlag,
-  updateEntry
+  updateEntry,
+  updateSettings
 } from './storage.js';
 
 const state = {
   library: null,
   folderId: DEFAULT_FOLDER_ID,
   activeView: 'folder',
+  language: 'en',
   query: '',
   searchOpen: false,
   tagLibrarySearch: '',
@@ -25,7 +29,8 @@ const state = {
   editingEntryId: null,
   editingEntryTagNames: [],
   editingFolderId: null,
-  editingTagId: null
+  editingTagId: null,
+  draggingEntryId: null
 };
 
 const elements = {
@@ -33,6 +38,7 @@ const elements = {
   folderName: document.getElementById('folder-name'),
   folderList: document.getElementById('folder-list'),
   viewList: document.getElementById('view-list'),
+  languageSelect: document.getElementById('language-select'),
   toggleSearch: document.getElementById('toggle-search'),
   searchPanel: document.getElementById('search-panel'),
   searchQuery: document.getElementById('search-query'),
@@ -54,6 +60,7 @@ const elements = {
   entryForm: document.getElementById('entry-form'),
   entryId: document.getElementById('entry-id'),
   entryTitle: document.getElementById('entry-title'),
+  entryUrl: document.getElementById('entry-url'),
   entryDescription: document.getElementById('entry-description'),
   entryFolder: document.getElementById('entry-folder'),
   entryTagSelect: document.getElementById('entry-tag-select'),
@@ -72,6 +79,21 @@ const elements = {
   tagLibraryList: document.getElementById('tag-library-list'),
   inlineRenameTemplate: document.getElementById('inline-rename-template'),
   statusStrip: document.getElementById('status-strip')
+};
+
+const ERROR_TRANSLATIONS = {
+  'Folder name must be unique.': 'errorFolderUnique',
+  'Folder name cannot be empty.': 'errorFolderEmpty',
+  'Folder cannot be renamed.': 'errorFolderRename',
+  'Folder cannot be deleted.': 'errorFolderDelete',
+  'Tag name must be unique.': 'errorTagUnique',
+  'Tag name cannot be empty.': 'errorTagEmpty',
+  'Tag not found.': 'errorTagNotFound',
+  'Entry not found.': 'errorEntryNotFound',
+  'Entry flag is invalid.': 'errorEntryFlagInvalid',
+  'URL is required to save an entry.': 'errorUrlRequired',
+  'Enter a valid URL.': 'errorUrlInvalid',
+  'Failed to save current tab.': 'errorSaveCurrentTab'
 };
 
 let statusTimer = null;
@@ -96,17 +118,20 @@ function getEntries(library) {
     .filter(Boolean);
 }
 
-function folderLabel(library, folderId) {
-  return library.foldersById[folderId]?.name || 'Inbox';
+function folderLabel(folderId) {
+  if (folderId === DEFAULT_FOLDER_ID) {
+    return t(state.language, 'inboxLabel');
+  }
+  return state.library.foldersById[folderId]?.name || t(state.language, 'inboxLabel');
 }
 
 function activeScopeText() {
   if (state.activeView !== 'folder') {
     const quickView = QUICK_VIEWS.find(view => view.id === state.activeView);
-    return quickView ? quickView.label : 'Saved entries';
+    return quickView ? t(state.language, quickView.labelKey) : t(state.language, 'quickViewAll');
   }
 
-  return folderLabel(state.library, state.folderId);
+  return folderLabel(state.folderId);
 }
 
 function setSelectedFolder(folderId) {
@@ -172,6 +197,56 @@ function getFilteredEntries() {
     });
 }
 
+function translateErrorMessage(message) {
+  const key = ERROR_TRANSLATIONS[message];
+  return key ? t(state.language, key) : message;
+}
+
+function applyLocalization() {
+  document.documentElement.lang = state.language;
+  document.title = t(state.language, 'appTitle');
+
+  document.querySelectorAll('[data-i18n]').forEach(node => {
+    node.textContent = t(state.language, node.dataset.i18n);
+  });
+
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(node => {
+    node.setAttribute('placeholder', t(state.language, node.dataset.i18nPlaceholder));
+  });
+
+  document.querySelectorAll('[data-i18n-aria-label]').forEach(node => {
+    node.setAttribute('aria-label', t(state.language, node.dataset.i18nAriaLabel));
+  });
+
+  document.querySelectorAll('[data-toggle-filter]').forEach(button => {
+    if (button.dataset.toggleFilter === 'favorites') {
+      button.textContent = t(state.language, 'favoritesFilter');
+    }
+    if (button.dataset.toggleFilter === 'pinned') {
+      button.textContent = t(state.language, 'pinnedFilter');
+    }
+    if (button.dataset.toggleFilter === 'unread') {
+      button.textContent = t(state.language, 'unreadFilter');
+    }
+  });
+
+  renderLanguageControl();
+}
+
+function renderLanguageControl() {
+  elements.languageSelect.innerHTML = '';
+  getAvailableLanguages().forEach(language => {
+    const option = document.createElement('option');
+    option.value = language.id;
+    option.textContent = language.id.toUpperCase();
+    if (language.id === state.language) {
+      option.selected = true;
+    }
+    elements.languageSelect.appendChild(option);
+  });
+  elements.languageSelect.setAttribute('aria-label', t(state.language, 'languageLabel'));
+}
+
 function updateSummary(entries) {
   elements.activeScopeLabel.textContent = activeScopeText();
   elements.emptyState.hidden = entries.length !== 0;
@@ -184,7 +259,7 @@ function renderViews() {
     row.type = 'button';
     row.className = `view-row sidebar-button${state.activeView === view.id ? ' active' : ''}`;
     const label = document.createElement('span');
-    label.textContent = view.label;
+    label.textContent = t(state.language, view.labelKey);
     row.appendChild(label);
     row.addEventListener('click', () => {
       state.activeView = view.id;
@@ -194,11 +269,74 @@ function renderViews() {
   });
 }
 
+function clearFolderDropTargets() {
+  document.querySelectorAll('.folder-row.drop-target').forEach(row => row.classList.remove('drop-target'));
+}
+
+function clearDraggingState() {
+  state.draggingEntryId = null;
+  document.body.classList.remove('drag-active');
+  document.querySelectorAll('.entry-card.is-dragging').forEach(card => card.classList.remove('is-dragging'));
+  clearFolderDropTargets();
+}
+
+async function moveEntryToFolder(entryId, targetFolderId) {
+  const entry = state.library.entriesById[entryId];
+  if (!entry || entry.folderId === targetFolderId) {
+    return;
+  }
+
+  await updateEntry(entryId, { folderId: targetFolderId });
+  await syncLibrary();
+  showStatus(t(state.language, 'entryMoved', { name: folderLabel(targetFolderId) }), 'success');
+}
+
+function wireFolderDropTarget(row, folder) {
+  row.addEventListener('dragover', event => {
+    if (!state.draggingEntryId) {
+      return;
+    }
+    event.preventDefault();
+    if (event.dataTransfer) {
+      event.dataTransfer.dropEffect = 'move';
+    }
+    clearFolderDropTargets();
+    row.classList.add('drop-target');
+  });
+
+  row.addEventListener('dragenter', event => {
+    if (!state.draggingEntryId) {
+      return;
+    }
+    event.preventDefault();
+    clearFolderDropTargets();
+    row.classList.add('drop-target');
+  });
+
+  row.addEventListener('dragleave', event => {
+    if (!row.contains(event.relatedTarget)) {
+      row.classList.remove('drop-target');
+    }
+  });
+
+  row.addEventListener('drop', async event => {
+    if (!state.draggingEntryId) {
+      return;
+    }
+    event.preventDefault();
+    const entryId = event.dataTransfer?.getData('text/plain') || state.draggingEntryId;
+    clearDraggingState();
+    await moveEntryToFolder(entryId, folder.id).catch(showError);
+  });
+}
+
 function renderFolders() {
   elements.folderList.innerHTML = '';
   getFolders(state.library).forEach(folder => {
     const row = document.createElement('div');
     row.className = `folder-row${state.activeView === 'folder' && state.folderId === folder.id ? ' active' : ''}`;
+    row.dataset.folderId = folder.id;
+    wireFolderDropTarget(row, folder);
 
     if (state.editingFolderId === folder.id) {
       row.classList.add('editing');
@@ -221,7 +359,7 @@ function renderFolders() {
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'sidebar-button';
-    button.textContent = folder.name;
+    button.textContent = folderLabel(folder.id);
     button.addEventListener('click', async () => {
       setSelectedFolder(folder.id);
       await saveSelectedFolder(folder.id);
@@ -232,6 +370,7 @@ function renderFolders() {
     renameButton.type = 'button';
     renameButton.className = 'micro-button';
     renameButton.textContent = '✎';
+    renameButton.title = t(state.language, 'editEntryTitle');
     renameButton.disabled = folder.system;
     renameButton.addEventListener('click', () => {
       state.editingFolderId = folder.id;
@@ -243,12 +382,14 @@ function renderFolders() {
     deleteButton.type = 'button';
     deleteButton.className = 'micro-button';
     deleteButton.textContent = '−';
+    deleteButton.title = t(state.language, 'deleteFolderButton');
     deleteButton.disabled = folder.system;
     deleteButton.addEventListener('click', () => {
       openConfirmDialog({
-        title: `Delete folder "${folder.name}"?`,
-        message: 'All links from this folder will be moved to Inbox.',
-        confirmLabel: 'Delete folder',
+        titleKey: 'deleteFolderTitle',
+        titleParams: { name: folder.name },
+        messageKey: 'deleteFolderMessage',
+        confirmLabelKey: 'deleteFolderButton',
         onConfirm: async () => {
           await deleteFolder(folder.id);
           await syncLibrary();
@@ -274,7 +415,7 @@ function renderSearchPanel() {
 
 function renderTagManagerPanel() {
   elements.tagManagerPanel.hidden = !state.tagManagerOpen;
-  elements.manageTags.textContent = state.tagManagerOpen ? 'Hide tags' : 'Manage tags';
+  elements.manageTags.textContent = state.tagManagerOpen ? t(state.language, 'cancel') : t(state.language, 'manageTags');
 }
 
 function renderConfirmDialog() {
@@ -282,23 +423,32 @@ function renderConfirmDialog() {
   elements.confirmModal.hidden = !dialog;
 
   if (!dialog) {
+    elements.confirmTitle.textContent = t(state.language, 'confirmDeleteItem');
+    elements.confirmMessage.textContent = '';
+    elements.confirmSubmit.textContent = t(state.language, 'delete');
     return;
   }
 
-  elements.confirmTitle.textContent = dialog.title;
-  elements.confirmMessage.textContent = dialog.message;
-  elements.confirmSubmit.textContent = dialog.confirmLabel;
+  elements.confirmTitle.textContent = dialog.titleKey
+    ? t(state.language, dialog.titleKey, dialog.titleParams)
+    : dialog.title;
+  elements.confirmMessage.textContent = dialog.messageKey
+    ? t(state.language, dialog.messageKey, dialog.messageParams)
+    : dialog.message;
+  elements.confirmSubmit.textContent = dialog.confirmLabelKey
+    ? t(state.language, dialog.confirmLabelKey, dialog.confirmLabelParams)
+    : dialog.confirmLabel;
 }
 
-function openConfirmDialog({ title, message, confirmLabel = 'Delete', onConfirm }) {
-  pendingConfirmAction = onConfirm;
-  state.confirmDialog = { title, message, confirmLabel };
+function openConfirmDialog(dialog) {
+  pendingConfirmAction = dialog.onConfirm;
+  state.confirmDialog = dialog;
   renderConfirmDialog();
 }
 
 function closeConfirmDialog() {
-  state.confirmDialog = null;
   pendingConfirmAction = null;
+  state.confirmDialog = null;
   renderConfirmDialog();
 }
 
@@ -330,7 +480,7 @@ function addEditingTagName(rawName) {
     return false;
   }
   if (hasSelectedTagName(canonicalName)) {
-    showStatus('Tag already selected.', 'error');
+    showStatus(t(state.language, 'tagAlreadySelected'), 'error');
     return false;
   }
   state.editingEntryTagNames = [...state.editingEntryTagNames, canonicalName];
@@ -345,7 +495,7 @@ function renderEntryTagEditor() {
   elements.entryTagSelect.innerHTML = '';
   const placeholder = document.createElement('option');
   placeholder.value = '';
-  placeholder.textContent = 'Choose an existing tag';
+  placeholder.textContent = t(state.language, 'chooseExistingTag');
   elements.entryTagSelect.appendChild(placeholder);
 
   getTags(state.library)
@@ -370,10 +520,38 @@ function renderEntryTagEditor() {
   });
 }
 
+async function openBrowserWindow(url) {
+  if (globalThis.browser?.windows?.create) {
+    await globalThis.browser.windows.create({ url });
+    return;
+  }
+
+  await new Promise((resolve, reject) => {
+    extensionApi.windows.create({ url }, () => {
+      const runtime = globalThis.chrome?.runtime;
+      if (runtime?.lastError) {
+        reject(new Error(runtime.lastError.message));
+        return;
+      }
+      resolve();
+    });
+  });
+}
+
 function openLink(entry) {
-  chrome.tabs.create({ url: entry.url });
+  openBrowserWindow(entry.url).catch(showError);
   if (!entry.read) {
     toggleEntryFlag(entry.id, 'read').then(syncLibrary).catch(showError);
+  }
+}
+
+function beginEntryDrag(entryId, card, event) {
+  state.draggingEntryId = entryId;
+  document.body.classList.add('drag-active');
+  card.classList.add('is-dragging');
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', entryId);
   }
 }
 
@@ -385,6 +563,7 @@ function renderEntries() {
   entries.forEach(entry => {
     const fragment = elements.entryTemplate.content.cloneNode(true);
     const card = fragment.querySelector('.entry-card');
+    const main = fragment.querySelector('.entry-main');
     const favicon = fragment.querySelector('.entry-favicon');
     const title = fragment.querySelector('.entry-title');
     const description = fragment.querySelector('.entry-description');
@@ -398,8 +577,14 @@ function renderEntries() {
     const deleteButton = fragment.querySelector('.delete-button');
 
     card.dataset.entryId = entry.id;
+    card.draggable = true;
     card.classList.toggle('is-pinned', entry.pinned);
     card.classList.toggle('is-read', entry.read);
+
+    card.addEventListener('dragstart', event => {
+      beginEntryDrag(entry.id, card, event);
+    });
+    card.addEventListener('dragend', clearDraggingState);
 
     favicon.src = entry.faviconUrl;
     favicon.alt = `${entry.domain} favicon`;
@@ -411,15 +596,27 @@ function renderEntries() {
     title.href = entry.url;
     title.addEventListener('click', event => {
       event.preventDefault();
+      event.stopPropagation();
+      openLink(entry);
+    });
+
+    main.addEventListener('click', event => {
+      if (event.target.closest('.badge.interactive')) {
+        return;
+      }
+      if (event.target.closest('.entry-title')) {
+        return;
+      }
       openLink(entry);
     });
 
     description.textContent = entry.description;
-    const folderBadge = createBadge(folderLabel(state.library, entry.folderId), 'interactive');
-    const domainBadge = createBadge(entry.domain || 'saved link');
-    const readBadge = createBadge(entry.read ? 'Read' : 'Unread');
+    const folderBadge = createBadge(folderLabel(entry.folderId), 'interactive');
+    const domainBadge = createBadge(entry.domain || t(state.language, 'savedLink'));
+    const readBadge = createBadge(entry.read ? t(state.language, 'readBadge') : t(state.language, 'unreadBadge'));
 
-    folderBadge.addEventListener('click', async () => {
+    folderBadge.addEventListener('click', async event => {
+      event.stopPropagation();
       setSelectedFolder(entry.folderId);
       await saveSelectedFolder(entry.folderId);
       render();
@@ -428,10 +625,10 @@ function renderEntries() {
     meta.append(folderBadge, domainBadge, readBadge);
 
     if (entry.favorite) {
-      badges.appendChild(createBadge('Favorite', 'favorite'));
+      badges.appendChild(createBadge(t(state.language, 'favoriteBadge'), 'favorite'));
     }
     if (entry.pinned) {
-      badges.appendChild(createBadge('Pinned', 'pinned'));
+      badges.appendChild(createBadge(t(state.language, 'pinnedBadge'), 'pinned'));
     }
 
     entry.tagIds.forEach(tagId => {
@@ -439,13 +636,17 @@ function renderEntries() {
       if (!tag) {
         return;
       }
-      const tagBadge = createBadge(`#${tag.name}`);
-      tags.appendChild(tagBadge);
+      tags.appendChild(createBadge(`#${tag.name}`));
     });
 
     favoriteButton.classList.toggle('active', entry.favorite);
     pinButton.classList.toggle('active', entry.pinned);
     readButton.classList.toggle('active', entry.read);
+    favoriteButton.title = t(state.language, 'toggleFavoriteTitle');
+    pinButton.title = t(state.language, 'togglePinnedTitle');
+    readButton.title = t(state.language, 'toggleReadTitle');
+    editButton.title = t(state.language, 'editEntryTitle');
+    deleteButton.title = t(state.language, 'deleteEntryTitle');
 
     favoriteButton.addEventListener('click', async () => {
       await toggleEntryFlag(entry.id, 'favorite').catch(showError);
@@ -464,9 +665,9 @@ function renderEntries() {
     });
     deleteButton.addEventListener('click', () => {
       openConfirmDialog({
-        title: 'Delete saved link?',
+        titleKey: 'deleteLinkTitle',
         message: entry.title,
-        confirmLabel: 'Delete link',
+        confirmLabelKey: 'deleteLinkButton',
         onConfirm: async () => {
           await deleteEntry(entry.id);
           await syncLibrary();
@@ -488,12 +689,13 @@ function openEntryEditor(entryId) {
   state.editingEntryId = entryId;
   elements.entryId.value = entry.id;
   elements.entryTitle.value = entry.title;
+  elements.entryUrl.value = entry.url;
   elements.entryDescription.value = entry.description;
   elements.entryFolder.innerHTML = '';
   getFolders(state.library).forEach(folder => {
     const option = document.createElement('option');
     option.value = folder.id;
-    option.textContent = folder.name;
+    option.textContent = folderLabel(folder.id);
     if (folder.id === entry.folderId) {
       option.selected = true;
     }
@@ -566,6 +768,7 @@ function renderTagLibrary() {
       renameButton.type = 'button';
       renameButton.className = 'micro-button';
       renameButton.textContent = '✎';
+      renameButton.title = t(state.language, 'editEntryTitle');
       renameButton.addEventListener('click', () => {
         state.editingTagId = tag.id;
         state.editingFolderId = null;
@@ -576,11 +779,13 @@ function renderTagLibrary() {
       deleteButton.type = 'button';
       deleteButton.className = 'micro-button';
       deleteButton.textContent = '−';
+      deleteButton.title = t(state.language, 'deleteTagButton');
       deleteButton.addEventListener('click', () => {
         openConfirmDialog({
-          title: `Delete tag "${tag.name}"?`,
-          message: 'This tag will be removed from the library and from every saved link that uses it.',
-          confirmLabel: 'Delete tag',
+          titleKey: 'deleteTagTitle',
+          titleParams: { name: tag.name },
+          messageKey: 'deleteTagMessage',
+          confirmLabelKey: 'deleteTagButton',
           onConfirm: async () => {
             await deleteTag(tag.id);
             await syncLibrary();
@@ -594,6 +799,7 @@ function renderTagLibrary() {
 }
 
 function render() {
+  applyLocalization();
   renderViews();
   renderFolders();
   renderFilterButtons();
@@ -602,13 +808,6 @@ function render() {
   renderConfirmDialog();
   renderEntries();
   renderTagLibrary();
-}
-
-function showError(error) {
-  if (!error) {
-    return;
-  }
-  showStatus(error.message || String(error), 'error');
 }
 
 function showStatus(message, tone = 'info') {
@@ -621,6 +820,13 @@ function showStatus(message, tone = 'info') {
   statusTimer = window.setTimeout(() => {
     elements.statusStrip.hidden = true;
   }, 2800);
+}
+
+function showError(error) {
+  if (!error) {
+    return;
+  }
+  showStatus(translateErrorMessage(error.message || String(error)), 'error');
 }
 
 function createInlineRenameForm({ initialValue, onSubmit, onCancel }) {
@@ -646,15 +852,17 @@ function createInlineRenameForm({ initialValue, onSubmit, onCancel }) {
 
 async function syncLibrary() {
   state.library = await loadLibrary();
+  state.language = normalizeLanguage(state.library.settings.language);
   state.folderId = state.library.foldersById[state.folderId] ? state.folderId : DEFAULT_FOLDER_ID;
   render();
 }
 
 async function saveCurrentTab() {
   return new Promise((resolve, reject) => {
-    chrome.runtime.sendMessage({ type: 'VIOLET_SAVE_ACTIVE_TAB' }, response => {
-      if (chrome.runtime.lastError) {
-        reject(new Error(chrome.runtime.lastError.message));
+    extensionApi.runtime.sendMessage({ type: 'VIOLET_SAVE_ACTIVE_TAB' }, response => {
+      const runtime = globalThis.chrome?.runtime;
+      if (runtime?.lastError) {
+        reject(new Error(runtime.lastError.message));
         return;
       }
       if (!response?.ok) {
@@ -663,6 +871,12 @@ async function saveCurrentTab() {
       }
       resolve(response.library);
     });
+  });
+}
+
+async function refreshContextMenus() {
+  return new Promise(resolve => {
+    extensionApi.runtime.sendMessage({ type: 'VIOLET_REFRESH_CONTEXT_MENUS' }, () => resolve());
   });
 }
 
@@ -675,7 +889,17 @@ elements.folderForm.addEventListener('submit', async event => {
   elements.folderName.value = '';
   state.editingFolderId = null;
   await syncLibrary();
-  showStatus('Folder created.', 'success');
+  showStatus(t(state.language, 'folderCreated'), 'success');
+});
+
+elements.languageSelect.addEventListener('change', async event => {
+  const nextLanguage = normalizeLanguage(event.target.value);
+  state.language = nextLanguage;
+  render();
+  await updateSettings({ language: nextLanguage }).catch(showError);
+  await syncLibrary();
+  await refreshContextMenus().catch(() => undefined);
+  showStatus(t(state.language, 'languageSaved'), 'success');
 });
 
 elements.toggleSearch.addEventListener('click', () => {
@@ -716,10 +940,7 @@ elements.manageTags.addEventListener('click', () => {
   openTagManager();
 });
 
-elements.closeTagPanel.addEventListener('click', () => {
-  closeTagManager();
-});
-
+elements.closeTagPanel.addEventListener('click', closeTagManager);
 elements.closeEntryModal.addEventListener('click', closeEntryEditor);
 elements.closeConfirmModal.addEventListener('click', closeConfirmDialog);
 elements.confirmCancel.addEventListener('click', closeConfirmDialog);
@@ -736,7 +957,7 @@ elements.tagForm.addEventListener('submit', async event => {
   elements.tagName.value = '';
   state.editingTagId = null;
   await syncLibrary();
-  showStatus('Tag created.', 'success');
+  showStatus(t(state.language, 'tagCreated'), 'success');
 });
 
 elements.tagLibrarySearch.addEventListener('input', event => {
@@ -767,6 +988,7 @@ elements.entryForm.addEventListener('submit', async event => {
 
   await updateEntry(entryId, {
     title: elements.entryTitle.value,
+    url: elements.entryUrl.value,
     description: elements.entryDescription.value,
     folderId: nextFolderId,
     tagNames: state.editingEntryTagNames,
@@ -782,7 +1004,7 @@ elements.entryForm.addEventListener('submit', async event => {
 
   closeEntryEditor();
   await syncLibrary();
-  showStatus('Entry updated.', 'success');
+  showStatus(t(state.language, 'entryUpdated'), 'success');
 });
 
 elements.saveCurrent.addEventListener('click', async () => {
@@ -791,7 +1013,7 @@ elements.saveCurrent.addEventListener('click', async () => {
     return;
   }
   await syncLibrary();
-  showStatus('Current tab saved.', 'success');
+  showStatus(t(state.language, 'currentTabSaved'), 'success');
 });
 
 window.addEventListener('click', event => {
@@ -822,6 +1044,7 @@ async function init() {
   closeConfirmDialog();
   closeTagManager();
   state.library = await loadLibrary();
+  state.language = normalizeLanguage(state.library.settings.language);
   state.folderId = DEFAULT_FOLDER_ID;
   state.activeView = 'folder';
   render();

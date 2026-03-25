@@ -3,42 +3,42 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Violet Reading List Backup</title>
+    <title data-i18n="optionsTitle">Violet Reading List Backup</title>
     <link rel="stylesheet" href="styles/options.css">
   </head>
   <body>
     <main class="options-shell">
       <section class="hero">
-        <p class="eyebrow">Backup and transport</p>
-        <h1>Violet Reading List</h1>
-        <p>Export your library, import a backup, and check which storage area is active.</p>
+        <p class="eyebrow" data-i18n="optionsEyebrow">Backup and transport</p>
+        <h1 data-i18n="appTitle">Violet Reading List</h1>
+        <p data-i18n="optionsIntro">Export your library, import a backup, and check which storage area is active.</p>
       </section>
 
       <section class="card-grid">
         <article class="card">
-          <h2>Export</h2>
-          <p>Download the full library as JSON.</p>
-          <button id="export-library" class="primary-action" type="button">Export library</button>
+          <h2 data-i18n="optionsExportTitle">Export</h2>
+          <p data-i18n="optionsExportCopy">Download the full library as JSON.</p>
+          <button id="export-library" class="primary-action" type="button" data-i18n="optionsExportButton">Export library</button>
         </article>
 
         <article class="card">
-          <h2>Import</h2>
-          <p>Bring back a previous backup.</p>
+          <h2 data-i18n="optionsImportTitle">Import</h2>
+          <p data-i18n="optionsImportCopy">Bring back a previous backup.</p>
           <label class="inline-select">
-            <span>Mode</span>
+            <span data-i18n="optionsImportMode">Mode</span>
             <select id="import-mode">
-              <option value="merge">Merge into current library</option>
-              <option value="replace">Replace current library</option>
+              <option value="merge" data-i18n="optionsImportMerge">Merge into current library</option>
+              <option value="replace" data-i18n="optionsImportReplace">Replace current library</option>
             </select>
           </label>
           <input id="import-file" type="file" accept="application/json">
-          <button id="import-library" class="secondary-action" type="button">Import file</button>
+          <button id="import-library" class="secondary-action" type="button" data-i18n="optionsImportButton">Import file</button>
         </article>
 
         <article class="card">
-          <h2>Storage</h2>
-          <p id="storage-status">Checking storage area…</p>
-          <button id="refresh-storage" class="ghost-action" type="button">Refresh</button>
+          <h2 data-i18n="optionsStorageTitle">Storage</h2>
+          <p id="storage-status" data-i18n="optionsStorageChecking">Checking storage area…</p>
+          <button id="refresh-storage" class="ghost-action" type="button" data-i18n="optionsRefreshStorage">Refresh</button>
         </article>
       </section>
 

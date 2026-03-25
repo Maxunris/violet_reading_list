@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Violet Reading List</title>
+    <title data-i18n="appTitle">Violet Reading List</title>
     <link rel="stylesheet" href="styles/popup.css">
   </head>
   <body>
@@ -11,20 +11,20 @@
       <aside class="sidebar">
         <section class="sidebar-section">
           <div class="section-heading">
-            <h2>Quick Views</h2>
+            <h2 data-i18n="quickViewsTitle">Quick Views</h2>
           </div>
-          <p class="section-copy">Jump between all entries, favorites, pinned items, and unread links.</p>
+          <p class="section-copy" data-i18n="quickViewsCopy">Jump between all entries, favorites, pinned items, and unread links.</p>
           <div class="view-list" id="view-list"></div>
         </section>
 
         <section class="sidebar-section">
           <div class="section-heading">
-            <h2>Folders</h2>
+            <h2 data-i18n="foldersTitle">Folders</h2>
           </div>
-          <p class="section-copy">Create folders here and switch between collections without losing your place.</p>
+          <p class="section-copy" data-i18n="foldersCopy">Create folders here and switch between collections without losing your place.</p>
           <form id="folder-form" class="inline-form">
-            <input id="folder-name" name="folderName" type="text" maxlength="40" placeholder="New folder name" autocomplete="off">
-            <button type="submit">Add</button>
+            <input id="folder-name" name="folderName" type="text" maxlength="40" placeholder="New folder name" autocomplete="off" data-i18n-placeholder="folderNamePlaceholder">
+            <button type="submit" data-i18n="addFolder">Add</button>
           </form>
           <div class="folder-list" id="folder-list"></div>
         </section>
@@ -33,56 +33,60 @@
       <main class="main-panel">
         <header class="toolbar">
           <div class="toolbar-copy">
-            <p class="eyebrow">Reading stack</p>
+            <p class="eyebrow" data-i18n="toolbarEyebrow">Reading stack</p>
             <h2 id="active-scope-label">All saved entries</h2>
           </div>
           <div class="toolbar-actions">
-            <button id="toggle-search" class="secondary-action" type="button">Search</button>
-            <button id="save-current" class="primary-action hero-action" type="button">Save Current Tab</button>
+            <label class="language-control">
+              <span data-i18n="languageLabel">Language</span>
+              <select id="language-select" aria-label="Language"></select>
+            </label>
+            <button id="toggle-search" class="secondary-action" type="button" data-i18n="searchToggle">Search</button>
+            <button id="save-current" class="primary-action hero-action" type="button" data-i18n="saveCurrentTab">Save Current Tab</button>
           </div>
         </header>
 
         <section id="search-panel" class="search-panel" hidden>
           <label class="search-field">
-            <span>Search</span>
-            <input id="search-query" type="search" placeholder="Search title, description, URL">
+            <span data-i18n="searchLabel">Search</span>
+            <input id="search-query" type="search" placeholder="Search title, description, URL" data-i18n-placeholder="searchPlaceholder">
           </label>
-          <button id="clear-search" class="ghost-action" type="button">Clear</button>
+          <button id="clear-search" class="ghost-action" type="button" data-i18n="clearSearch">Clear</button>
         </section>
 
         <section class="filter-panel">
           <div class="filter-group">
-            <span class="filter-label">States</span>
+            <span class="filter-label" data-i18n="statesLabel">States</span>
             <button class="pill-filter" data-toggle-filter="favorites" type="button">★ Favorites</button>
             <button class="pill-filter" data-toggle-filter="pinned" type="button">📌 Pinned</button>
             <button class="pill-filter" data-toggle-filter="unread" type="button">◔ Unread</button>
           </div>
-          <button id="manage-tags" class="ghost-action" type="button">Manage tags</button>
+          <button id="manage-tags" class="ghost-action" type="button" data-i18n="manageTags">Manage tags</button>
         </section>
 
         <section id="tag-manager-panel" class="tag-manager-panel" hidden>
           <div class="panel-heading">
             <div>
-              <p class="eyebrow">Tag library</p>
-              <h3>Manage tags</h3>
+              <p class="eyebrow" data-i18n="tagLibraryEyebrow">Tag library</p>
+              <h3 data-i18n="tagLibraryTitle">Manage tags</h3>
             </div>
-            <button id="close-tag-panel" class="icon-button" type="button" aria-label="Close tag manager">×</button>
+            <button id="close-tag-panel" class="icon-button" type="button" aria-label="Close tag manager" data-i18n-aria-label="closeTagManager">×</button>
           </div>
           <form id="tag-form" class="inline-form">
-            <input id="tag-name" type="text" maxlength="32" placeholder="New tag name" autocomplete="off">
-            <button type="submit">Create</button>
+            <input id="tag-name" type="text" maxlength="32" placeholder="New tag name" autocomplete="off" data-i18n-placeholder="tagNamePlaceholder">
+            <button type="submit" data-i18n="createTag">Create</button>
           </form>
           <label class="search-field">
-            <span>Find tag</span>
-            <input id="tag-library-search" type="search" placeholder="Search tags">
+            <span data-i18n="findTag">Find tag</span>
+            <input id="tag-library-search" type="search" placeholder="Search tags" data-i18n-placeholder="findTagPlaceholder">
           </label>
           <div id="tag-library-list" class="tag-library-list"></div>
         </section>
 
         <section class="entry-panel">
           <div id="empty-state" class="empty-state" hidden>
-            <h3>Nothing matches this view</h3>
-            <p>Try another folder, switch the current view, or save the current page.</p>
+            <h3 data-i18n="emptyStateTitle">Nothing matches this view</h3>
+            <p data-i18n="emptyStateCopy">Try another folder, switch the current view, or save the current page.</p>
           </div>
           <div id="entry-list" class="entry-list"></div>
         </section>
@@ -95,46 +99,50 @@
       <div class="modal-card">
         <div class="modal-header">
           <div>
-            <p class="eyebrow">Entry details</p>
-            <h3>Edit saved link</h3>
+            <p class="eyebrow" data-i18n="entryDetailsEyebrow">Entry details</p>
+            <h3 data-i18n="editSavedLink">Edit saved link</h3>
           </div>
-          <button id="close-entry-modal" class="icon-button" type="button" aria-label="Close entry editor">×</button>
+          <button id="close-entry-modal" class="icon-button" type="button" aria-label="Close entry editor" data-i18n-aria-label="closeEntryEditor">×</button>
         </div>
         <form id="entry-form" class="modal-form">
           <input id="entry-id" type="hidden">
           <label>
-            <span>Title</span>
+            <span data-i18n="fieldTitle">Title</span>
             <input id="entry-title" type="text" maxlength="120" required>
           </label>
           <label>
-            <span>Description</span>
+            <span data-i18n="fieldUrl">Link</span>
+            <input id="entry-url" type="url" required>
+          </label>
+          <label>
+            <span data-i18n="fieldDescription">Description</span>
             <textarea id="entry-description" rows="4" maxlength="280"></textarea>
           </label>
           <label>
-            <span>Folder</span>
+            <span data-i18n="fieldFolder">Folder</span>
             <select id="entry-folder"></select>
           </label>
           <label>
-            <span>Tags</span>
+            <span data-i18n="fieldTags">Tags</span>
             <div class="entry-tag-editor">
               <div class="entry-tag-row">
                 <select id="entry-tag-select"></select>
-                <button id="entry-add-tag" class="secondary-action inline-tag-action" type="button">Add existing</button>
+                <button id="entry-add-tag" class="secondary-action inline-tag-action" type="button" data-i18n="addExistingTag">Add existing</button>
               </div>
               <div class="entry-tag-row">
-                <input id="entry-new-tag" type="text" maxlength="32" placeholder="Create a new tag">
-                <button id="entry-create-tag" class="secondary-action inline-tag-action" type="button">Create tag</button>
+                <input id="entry-new-tag" type="text" maxlength="32" placeholder="Create a new tag" data-i18n-placeholder="createNewTagPlaceholder">
+                <button id="entry-create-tag" class="secondary-action inline-tag-action" type="button" data-i18n="createTagInline">Create tag</button>
               </div>
               <div id="entry-selected-tags" class="entry-selected-tags"></div>
             </div>
           </label>
           <div class="toggle-row">
-            <label><input id="entry-favorite" type="checkbox"> Favorite</label>
-            <label><input id="entry-pinned" type="checkbox"> Pinned</label>
-            <label><input id="entry-read" type="checkbox"> Read</label>
+            <label><input id="entry-favorite" type="checkbox"> <span data-i18n="fieldFavorite">Favorite</span></label>
+            <label><input id="entry-pinned" type="checkbox"> <span data-i18n="fieldPinned">Pinned</span></label>
+            <label><input id="entry-read" type="checkbox"> <span data-i18n="fieldRead">Read</span></label>
           </div>
           <div class="modal-actions">
-            <button class="primary-action" type="submit">Save changes</button>
+            <button class="primary-action" type="submit" data-i18n="saveChanges">Save changes</button>
           </div>
         </form>
       </div>
@@ -144,17 +152,17 @@
       <div class="modal-card confirm-card">
         <div class="modal-header">
           <div>
-            <p class="eyebrow">Confirm action</p>
-            <h3 id="confirm-title">Delete item</h3>
+            <p class="eyebrow" data-i18n="confirmEyebrow">Confirm action</p>
+            <h3 id="confirm-title" data-i18n="confirmDeleteItem">Delete item</h3>
           </div>
-          <button id="close-confirm-modal" class="icon-button" type="button" aria-label="Close confirmation">×</button>
+          <button id="close-confirm-modal" class="icon-button" type="button" aria-label="Close confirmation" data-i18n-aria-label="closeConfirmation">×</button>
         </div>
         <div class="confirm-copy">
           <p id="confirm-message"></p>
         </div>
         <div class="modal-actions confirm-actions">
-          <button id="confirm-cancel" class="ghost-action" type="button">Cancel</button>
-          <button id="confirm-submit" class="primary-action danger-action" type="button">Delete</button>
+          <button id="confirm-cancel" class="ghost-action" type="button" data-i18n="cancel">Cancel</button>
+          <button id="confirm-submit" class="primary-action danger-action" type="button" data-i18n="delete">Delete</button>
         </div>
       </div>
     </div>

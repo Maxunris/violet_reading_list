@@ -173,7 +173,8 @@ function createSeedLibrary() {
     entryOrder: ['entry_alpha'],
     settings: {
       selectedFolderId: 'folder_inbox',
-      activeView: 'folder'
+      activeView: 'folder',
+      language: 'en'
     }
   };
 }
@@ -386,6 +387,20 @@ try {
     await popup.close();
   });
 
+  await record('language switch renders popup in Russian and persists for the session', async () => {
+    const popup = await preparePopup(createLibraryWithFolder());
+    await popup.locator('#language-select').selectOption('ru');
+    await popup.waitForTimeout(200);
+    await captureStep(popup, 'russian-language');
+    const saveLabel = await popup.locator('#save-current').textContent();
+    const quickViewsTitle = await popup.locator('[data-i18n="quickViewsTitle"]').textContent();
+    const activeLabel = await popup.locator('#active-scope-label').textContent();
+    if (saveLabel?.trim() !== 'Сохранить вкладку') throw new Error(`save action not translated: ${saveLabel}`);
+    if (quickViewsTitle?.trim() !== 'Быстрые разделы') throw new Error(`quick views heading not translated: ${quickViewsTitle}`);
+    if (activeLabel?.trim() !== 'Входящие') throw new Error(`active scope not translated: ${activeLabel}`);
+    await popup.close();
+  });
+
   await record('saved entries show at least four visible cards in the right pane', async () => {
     const popup = await preparePopup(createLibraryWithVisibleEntries());
     await popup.waitForSelector('.entry-card');
@@ -453,6 +468,26 @@ try {
     const inboxActive = await popup.locator('.folder-row.active .sidebar-button').first().textContent();
     if (activeLabel?.trim() !== 'Inbox') throw new Error(`expected Inbox scope, got ${activeLabel}`);
     if (inboxActive?.trim() !== 'Inbox') throw new Error(`expected Inbox folder active, got ${inboxActive}`);
+    await popup.close();
+  });
+
+  await record('saved link hover state is visible and clicking opens a new browser window', async () => {
+    const popup = await preparePopup(createSeedLibrary());
+    await popup.waitForSelector('.entry-card');
+    const borderBefore = await popup.locator('.entry-card').first().evaluate(node => getComputedStyle(node).borderColor);
+    await popup.locator('.entry-card').first().hover();
+    await popup.waitForTimeout(100);
+    const borderAfter = await popup.locator('.entry-card').first().evaluate(node => getComputedStyle(node).borderColor);
+    if (borderBefore === borderAfter) throw new Error(`hover border did not change: ${borderBefore}`);
+
+    const pagePromise = context.waitForEvent('page');
+    await popup.locator('.entry-title').first().click();
+    const opened = await pagePromise;
+    await opened.waitForLoadState('domcontentloaded');
+    if (!opened.url().includes('https://example.com/article')) {
+      throw new Error(`unexpected opened URL: ${opened.url()}`);
+    }
+    await opened.close();
     await popup.close();
   });
 
@@ -584,6 +619,7 @@ try {
       throw new Error(`folder options missing target folder: ${folderOptions.join(',')}`);
     }
     await popup.locator('#entry-folder').selectOption({ label: 'Deep Research' });
+    await popup.locator('#entry-url').fill('https://deepresearch.dev/updated');
     await popup.locator('#entry-tag-select').selectOption({ label: 'urgent' });
     await popup.locator('#entry-add-tag').dispatchEvent('click');
     await popup.locator('#entry-new-tag').fill('reading-notes');
@@ -600,12 +636,15 @@ try {
     const badges = await popup.locator('.entry-badges .badge').allTextContents();
     const tags = await popup.locator('.entry-tags .badge').allTextContents();
     const meta = await popup.locator('.entry-meta .badge').allTextContents();
+    const href = await popup.locator('.entry-title').first().getAttribute('href');
     if (!badges.includes('Favorite') || !badges.includes('Pinned')) {
       const storage = await popup.evaluate(async () => new Promise(resolve => chrome.storage.local.get('readingListData', resolve)));
       throw new Error(`missing entry badges count=${entryCount} badges=${badges.join(',')} tags=${tags.join(',')} meta=${meta.join(',')} storage=${JSON.stringify(storage)}`);
     }
     if (!tags.includes('#urgent') || !tags.includes('#reading-notes')) throw new Error(`missing tag chips ${tags.join(',')}`);
     if (!meta.some(text => text.includes('Deep Research'))) throw new Error(`folder badge not updated ${meta.join(',')}`);
+    if (!meta.some(text => text.includes('deepresearch.dev'))) throw new Error(`domain badge not updated ${meta.join(',')}`);
+    if (href !== 'https://deepresearch.dev/updated') throw new Error(`entry URL not updated: ${href}`);
     await popup.close();
   });
 
@@ -666,6 +705,29 @@ try {
     await popup.close();
   });
 
+  await record('entry can be dragged from the list into a sidebar folder', async () => {
+    const popup = await preparePopup(createLibraryWithFolder());
+    await popup.waitForSelector('.entry-card');
+    await popup.evaluate(() => {
+      const entry = document.querySelector('.entry-card');
+      const folder = Array.from(document.querySelectorAll('.folder-row')).find(node => node.textContent.includes('Deep Research'));
+      const dataTransfer = new DataTransfer();
+      entry.dispatchEvent(new DragEvent('dragstart', { bubbles: true, dataTransfer }));
+      folder.dispatchEvent(new DragEvent('dragenter', { bubbles: true, cancelable: true, dataTransfer }));
+      folder.dispatchEvent(new DragEvent('dragover', { bubbles: true, cancelable: true, dataTransfer }));
+      folder.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer }));
+      entry.dispatchEvent(new DragEvent('dragend', { bubbles: true, dataTransfer }));
+    });
+    await popup.waitForTimeout(250);
+    await popup.locator('.folder-row', { hasText: 'Deep Research' }).locator('.sidebar-button').click();
+    await popup.waitForTimeout(150);
+    const count = await popup.locator('.entry-card').count();
+    const meta = await popup.locator('.entry-meta .badge').allTextContents();
+    if (count !== 1) throw new Error(`drag move did not reassign entry: ${count}`);
+    if (!meta.some(text => text.includes('Deep Research'))) throw new Error(`moved entry missing target folder badge: ${meta.join(',')}`);
+    await popup.close();
+  });
+
   await record('favorites, pinned and unread views behave correctly', async () => {
     const popup = await preparePopup(createLibraryWithTagsAndFlags());
     await popup.waitForSelector('.entry-card');
@@ -700,7 +762,7 @@ try {
     const options = await context.newPage();
     await options.goto(optionsUrl);
     const downloadPromise = options.waitForEvent('download');
-    await options.getByRole('button', { name: 'Export library' }).click();
+    await options.locator('#export-library').click();
     const download = await downloadPromise;
     await download.saveAs(exportPath);
     const exported = JSON.parse(await readFile(exportPath, 'utf8'));
@@ -709,7 +771,7 @@ try {
     await writeFile(exportPath, JSON.stringify(exported));
     await options.locator('#import-mode').selectOption('replace');
     await options.locator('#import-file').setInputFiles(exportPath);
-    await options.getByRole('button', { name: 'Import file' }).click();
+    await options.locator('#import-library').click();
     await options.waitForTimeout(250);
     await options.close();
     const popup = await openPopup();

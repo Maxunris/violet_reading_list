@@ -1,18 +1,25 @@
-import { addEntry, buildFaviconUrl } from './storage.js';
+import { normalizeLanguage, t } from './i18n.js';
+import { addEntry, buildFaviconUrl, loadLibrary } from './storage.js';
 
 const PAGE_MENU_ID = 'violet-save-page';
 const LINK_MENU_ID = 'violet-save-link';
 
-function createMenus() {
+async function getCurrentLanguage() {
+  const library = await loadLibrary().catch(() => null);
+  return normalizeLanguage(library?.settings?.language);
+}
+
+async function createMenus() {
+  const language = await getCurrentLanguage();
   chrome.contextMenus.removeAll(() => {
     chrome.contextMenus.create({
       id: PAGE_MENU_ID,
-      title: 'Save page to Violet Reading List',
+      title: t(language, 'menuSavePage'),
       contexts: ['page']
     });
     chrome.contextMenus.create({
       id: LINK_MENU_ID,
-      title: 'Save link to Violet Reading List',
+      title: t(language, 'menuSaveLink'),
       contexts: ['link']
     });
   });
@@ -65,11 +72,11 @@ async function saveLink(info) {
 }
 
 chrome.runtime.onInstalled.addListener(() => {
-  createMenus();
+  createMenus().catch(() => undefined);
 });
 
 chrome.runtime.onStartup?.addListener(() => {
-  createMenus();
+  createMenus().catch(() => undefined);
 });
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
@@ -89,6 +96,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         .then(result => sendResponse({ ok: true, library: result }))
         .catch(error => sendResponse({ ok: false, error: error.message }));
     });
+    return true;
+  }
+
+  if (message?.type === 'VIOLET_REFRESH_CONTEXT_MENUS') {
+    createMenus()
+      .then(() => sendResponse({ ok: true }))
+      .catch(error => sendResponse({ ok: false, error: error.message }));
     return true;
   }
 

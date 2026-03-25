@@ -48,12 +48,13 @@ async function build() {
 
   const chromiumManifest = structuredClone(manifest);
   delete chromiumManifest.browser_specific_settings;
-  delete chromiumManifest.background.scripts;
   await writeManifest(chromiumDir, chromiumManifest);
 
   const firefoxManifest = structuredClone(manifest);
-  delete firefoxManifest.background.service_worker;
-  delete firefoxManifest.background.type;
+  firefoxManifest.background = {
+    ...firefoxManifest.background,
+    scripts: ['scripts/background.js']
+  };
   await writeManifest(firefoxDir, firefoxManifest);
 
   await zipDirectory(chromiumDir, path.join(distDir, 'violet-reading-list-chromium.zip'));

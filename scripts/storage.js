@@ -1,10 +1,12 @@
 import {
   APP_VERSION,
+  DEFAULT_LANGUAGE,
   DEFAULT_FOLDER_ID,
   STORAGE_KEY,
   STORAGE_META_KEY
 } from './constants.js';
 import { callChromeMethod, extensionApi } from './browser-api.js';
+import { normalizeLanguage } from './i18n.js';
 
 let resolvedArea = null;
 
@@ -42,7 +44,8 @@ export function createDefaultLibrary() {
     entryOrder: [],
     settings: {
       selectedFolderId: DEFAULT_FOLDER_ID,
-      activeView: 'all'
+      activeView: 'all',
+      language: DEFAULT_LANGUAGE
     }
   };
 }
@@ -71,6 +74,24 @@ function normalizeDomain(url) {
   }
 }
 
+export function isValidEntryUrl(url) {
+  try {
+    new URL(url);
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
+function ensureValidEntryUrl(url) {
+  if (!normalizeText(url)) {
+    throw new Error('URL is required to save an entry.');
+  }
+  if (!isValidEntryUrl(url)) {
+    throw new Error('Enter a valid URL.');
+  }
+}
+
 function fallbackDescription(url) {
   const domain = normalizeDomain(url);
   return domain ? `Saved from ${domain}` : 'Saved link';
@@ -85,11 +106,17 @@ function sanitizeEntry(input, library) {
   const timestamp = now();
   const existingEntry = input.id && library.entriesById[input.id] ? library.entriesById[input.id] : null;
   const url = normalizeText(input.url || existingEntry?.url || '');
+  const urlChanged = Boolean(existingEntry && url && url !== existingEntry.url);
   const title = normalizeText(input.title || existingEntry?.title || fallbackTitle(url));
   const description = normalizeText(input.description || existingEntry?.description || fallbackDescription(url));
   const folderId = ensureFolder(library, input.folderId || existingEntry?.folderId || DEFAULT_FOLDER_ID);
   const tagIds = Array.from(new Set((input.tagIds || existingEntry?.tagIds || []).filter(tagId => library.tagsById[tagId]))).sort();
-  const faviconUrl = normalizeText(input.faviconUrl || existingEntry?.faviconUrl || '');
+  const faviconSeed = Object.prototype.hasOwnProperty.call(input, 'faviconUrl')
+    ? input.faviconUrl
+    : urlChanged
+      ? ''
+      : existingEntry?.faviconUrl;
+  const faviconUrl = normalizeText(faviconSeed || '');
 
   return {
     id: input.id || existingEntry?.id || createId('entry'),
@@ -217,6 +244,7 @@ export function normalizeLibrary(source) {
   library.entriesById = sanitizedEntries;
   library.entryOrder = sanitizedOrder;
   library.settings.selectedFolderId = ensureFolder(library, library.settings.selectedFolderId);
+  library.settings.language = normalizeLanguage(library.settings.language);
 
   return library;
 }
@@ -343,10 +371,8 @@ export async function importLibrary(rawText, mode = 'merge') {
 
 export async function addEntry(entryInput) {
   const library = await loadLibrary();
+  ensureValidEntryUrl(entryInput.url);
   const normalizedEntry = sanitizeEntry(entryInput, library);
-  if (!normalizedEntry.url) {
-    throw new Error('URL is required to save an entry.');
-  }
 
   const existingId = findEntryIdByUrl(library, normalizedEntry.url);
   const entryId = existingId || normalizedEntry.id;
@@ -363,6 +389,9 @@ export async function updateEntry(entryId, updates) {
   }
 
   const nextUpdates = { ...updates };
+  if (Object.prototype.hasOwnProperty.call(nextUpdates, 'url')) {
+    ensureValidEntryUrl(nextUpdates.url);
+  }
   if (Array.isArray(updates.tagNames)) {
     nextUpdates.tagIds = buildTagIdsFromNames(library, updates.tagNames);
     delete nextUpdates.tagNames;
@@ -504,6 +533,19 @@ export async function toggleEntryFlag(entryId, flagName) {
 export async function saveSelectedFolder(folderId) {
   const library = await loadLibrary();
   library.settings.selectedFolderId = ensureFolder(library, folderId);
+  return saveLibrary(library);
+}
+
+export async function updateSettings(patch) {
+  const library = await loadLibrary();
+  library.settings = {
+    ...library.settings,
+    ...patch
+  };
+  if (Object.prototype.hasOwnProperty.call(library.settings, 'language')) {
+    library.settings.language = normalizeLanguage(library.settings.language);
+  }
+  library.settings.selectedFolderId = ensureFolder(library, library.settings.selectedFolderId);
   return saveLibrary(library);
 }
 

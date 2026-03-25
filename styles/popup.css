@@ -148,7 +148,8 @@ button {
 .modal-form input,
 .modal-form textarea,
 .modal-form select,
-.inline-select select {
+.inline-select select,
+.language-control select {
   width: 100%;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
@@ -221,6 +222,7 @@ button {
   border-radius: var(--radius-md);
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid transparent;
+  transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease, background 140ms ease;
 }
 
 .folder-row.editing,
@@ -232,6 +234,13 @@ button {
 .folder-row.active {
   background: rgba(255, 255, 255, 0.18);
   border-color: rgba(255, 255, 255, 0.14);
+}
+
+.folder-row.drop-target {
+  background: rgba(255, 255, 255, 0.24);
+  border-color: rgba(255, 255, 255, 0.42);
+  box-shadow: 0 0 0 2px rgba(199, 173, 255, 0.35);
+  transform: translateX(2px) scale(1.01);
 }
 
 .folder-row span,
@@ -295,6 +304,7 @@ button {
   gap: 8px;
   flex-wrap: wrap;
   justify-content: flex-start;
+  align-items: center;
 }
 
 .hero-action {
@@ -302,6 +312,27 @@ button {
   font-weight: 700;
   letter-spacing: 0.01em;
   box-shadow: 0 16px 28px rgba(98, 41, 217, 0.28);
+}
+
+.language-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(127, 61, 255, 0.1);
+  color: var(--accent-strong);
+}
+
+.language-control span {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.language-control select {
+  min-width: 74px;
+  padding: 7px 10px;
 }
 
 .secondary-action.active {
@@ -438,6 +469,7 @@ button {
   border-radius: 14px;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(245, 239, 255, 0.94));
   border: 1px solid rgba(127, 61, 255, 0.12);
+  transition: transform 140ms ease, border-color 140ms ease, box-shadow 140ms ease, background 140ms ease;
 }
 
 .entry-card.is-pinned {
@@ -449,10 +481,25 @@ button {
   opacity: 0.82;
 }
 
+.entry-card:hover,
+.entry-card:focus-within {
+  border-color: rgba(127, 61, 255, 0.42);
+  box-shadow:
+    0 10px 22px rgba(98, 41, 217, 0.08),
+    inset 0 0 0 1px rgba(127, 61, 255, 0.12);
+  transform: translateY(-1px);
+}
+
+.entry-card.is-dragging {
+  opacity: 0.58;
+  transform: rotate(-1deg) scale(0.99);
+}
+
 .entry-main {
   display: flex;
   gap: 6px;
   min-width: 0;
+  cursor: pointer;
 }
 
 .entry-favicon-wrap {
@@ -495,6 +542,16 @@ button {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  transition: color 140ms ease, text-decoration-color 140ms ease;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 2px;
+  text-decoration-color: transparent;
+}
+
+.entry-card:hover .entry-title,
+.entry-title:hover {
+  color: var(--accent-strong);
+  text-decoration-color: currentColor;
 }
 
 .entry-description {

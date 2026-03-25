@@ -99,3 +99,26 @@ test('updating an entry with tag names creates reusable tags', async () => {
     ['design', 'work']
   );
 });
+
+test('updating an entry URL refreshes normalized domain metadata', async () => {
+  const withEntry = await storage.addEntry({
+    url: 'https://example.com/original',
+    title: 'Original entry'
+  });
+  const entryId = withEntry.entryOrder[0];
+
+  await storage.updateEntry(entryId, {
+    url: 'https://deepresearch.dev/updated'
+  });
+
+  const library = await storage.loadLibrary();
+  const entry = library.entriesById[entryId];
+  assert.equal(entry.url, 'https://deepresearch.dev/updated');
+  assert.equal(entry.domain, 'deepresearch.dev');
+});
+
+test('settings updates persist selected language', async () => {
+  await storage.updateSettings({ language: 'ru' });
+  const library = await storage.loadLibrary();
+  assert.equal(library.settings.language, 'ru');
+});

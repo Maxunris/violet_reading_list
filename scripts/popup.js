@@ -387,8 +387,8 @@ function renderFolders() {
 
     const renameButton = document.createElement('button');
     renameButton.type = 'button';
-    renameButton.className = 'micro-button';
-    renameButton.textContent = '✎';
+    renameButton.className = 'micro-button micro-button-edit';
+    renameButton.innerHTML = '<span class="micro-icon" aria-hidden="true">✎</span>';
     renameButton.title = t(state.language, 'editEntryTitle');
     renameButton.disabled = folder.system;
     renameButton.addEventListener('click', () => {
@@ -399,8 +399,8 @@ function renderFolders() {
 
     const deleteButton = document.createElement('button');
     deleteButton.type = 'button';
-    deleteButton.className = 'micro-button';
-    deleteButton.textContent = '−';
+    deleteButton.className = 'micro-button micro-button-delete';
+    deleteButton.innerHTML = '<span class="micro-icon" aria-hidden="true">−</span>';
     deleteButton.title = t(state.language, 'deleteFolderButton');
     deleteButton.disabled = folder.system;
     deleteButton.addEventListener('click', () => {

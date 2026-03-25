@@ -333,11 +333,22 @@ button {
   min-width: 28px;
   min-height: 28px;
   padding: 0;
-  display: grid;
-  place-items: center;
-  font-size: 13px;
-  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 10px;
+}
+
+.micro-icon {
+  display: block;
+  line-height: 1;
+  font-size: 13px;
+  transform: translateY(-0.5px);
+}
+
+.micro-button-delete .micro-icon {
+  font-size: 15px;
+  transform: translateY(-1px);
 }
 
 .micro-button:disabled {

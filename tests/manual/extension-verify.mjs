@@ -430,6 +430,8 @@ try {
 
   await record('left sidebar scrolls independently from the entry list', async () => {
     const popup = await preparePopup(createLibraryWithManyFolders());
+    await popup.setViewportSize({ width: 780, height: 560 });
+    await popup.waitForTimeout(100);
     await captureStep(popup, 'sidebar-before-scroll');
     const scrollState = await popup.evaluate(() => {
       const sidebar = document.querySelector('.sidebar');
@@ -548,7 +550,7 @@ try {
     let row = popup.locator('.tag-library-item', { hasText: 'priority' }).first();
     if (await row.count() !== 1) throw new Error('tag not created');
     step('rename tag');
-    await row.locator('.micro-button').first().dispatchEvent('click');
+    await row.locator('button').first().dispatchEvent('click');
     await popup.waitForTimeout(100);
     const tagRenameInputs = await popup.locator('.inline-rename-input').count();
     if (tagRenameInputs === 0) {
@@ -561,7 +563,7 @@ try {
     row = popup.locator('.tag-library-item', { hasText: 'urgent' }).first();
     if (await row.count() !== 1) throw new Error('tag not renamed');
     step('delete tag');
-    await row.locator('.micro-button').nth(1).dispatchEvent('click');
+    await row.locator('button').nth(1).dispatchEvent('click');
     await popup.waitForTimeout(100);
     await popup.locator('#confirm-submit').dispatchEvent('click');
     await popup.waitForTimeout(200);
@@ -579,7 +581,7 @@ try {
     if (!createStatus?.includes('unique')) throw new Error(`expected duplicate tag error, got ${createStatus}`);
 
     const row = popup.locator('.tag-library-item', { hasText: 'reading' }).first();
-    await row.locator('.micro-button').first().dispatchEvent('click');
+    await row.locator('button').first().dispatchEvent('click');
     await popup.locator('.inline-rename-input').fill('urgent');
     await popup.locator('.inline-rename-form').evaluate(form => form.requestSubmit());
     await popup.waitForTimeout(200);

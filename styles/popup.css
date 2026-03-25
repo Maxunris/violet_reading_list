@@ -237,10 +237,40 @@ button {
 }
 
 .folder-row.drop-target {
-  background: rgba(255, 255, 255, 0.24);
-  border-color: rgba(255, 255, 255, 0.42);
-  box-shadow: 0 0 0 2px rgba(199, 173, 255, 0.35);
-  transform: translateX(2px) scale(1.01);
+  position: relative;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.28), rgba(214, 191, 255, 0.3));
+  border-color: rgba(255, 255, 255, 0.55);
+  box-shadow:
+    0 0 0 2px rgba(199, 173, 255, 0.4),
+    0 16px 26px rgba(19, 8, 39, 0.18);
+  transform: translateX(3px) scale(1.015);
+  animation: dropTargetPulse 700ms ease-in-out infinite;
+}
+
+.folder-row.drop-target::before {
+  content: "";
+  position: absolute;
+  left: -7px;
+  top: 8px;
+  bottom: 8px;
+  width: 4px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #f2e8ff, #b98cff);
+  box-shadow: 0 0 12px rgba(236, 220, 255, 0.75);
+}
+
+.folder-row.drop-target::after {
+  content: attr(data-drop-label);
+  justify-self: end;
+  align-self: center;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.22);
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .folder-row span,
@@ -392,6 +422,14 @@ button {
   margin: 0;
   font-size: 24px;
   line-height: 1.05;
+}
+
+.panel-copy {
+  margin: 8px 0 0;
+  color: #6c5595;
+  font-size: 12px;
+  line-height: 1.4;
+  max-width: 42ch;
 }
 
 .filter-group {
@@ -762,6 +800,61 @@ button {
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.86);
   border: 1px solid rgba(127, 61, 255, 0.12);
+}
+
+.tag-action-button {
+  padding: 8px 12px;
+  min-width: auto;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.danger-chip {
+  border: 0;
+  border-radius: 999px;
+  background: rgba(169, 54, 94, 0.12);
+  color: #a9365e;
+  transition: transform 120ms ease, opacity 120ms ease, background 120ms ease;
+}
+
+.danger-chip:hover {
+  transform: translateY(-1px);
+  background: rgba(169, 54, 94, 0.2);
+}
+
+.drag-preview-pill {
+  position: fixed;
+  top: -9999px;
+  left: -9999px;
+  max-width: 220px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(89, 41, 160, 0.96), rgba(127, 61, 255, 0.98));
+  color: white;
+  box-shadow: 0 18px 36px rgba(41, 18, 75, 0.34);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+
+@keyframes dropTargetPulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 2px rgba(199, 173, 255, 0.4),
+      0 16px 26px rgba(19, 8, 39, 0.18);
+  }
+
+  50% {
+    box-shadow:
+      0 0 0 4px rgba(225, 208, 255, 0.25),
+      0 20px 32px rgba(19, 8, 39, 0.24);
+  }
 }
 
 .inline-rename-form {

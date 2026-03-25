@@ -98,6 +98,7 @@ const ERROR_TRANSLATIONS = {
 
 let statusTimer = null;
 let pendingConfirmAction = null;
+let dragPreviewNode = null;
 
 function getTags(library) {
   return library.tagOrder
@@ -278,6 +279,10 @@ function clearDraggingState() {
   document.body.classList.remove('drag-active');
   document.querySelectorAll('.entry-card.is-dragging').forEach(card => card.classList.remove('is-dragging'));
   clearFolderDropTargets();
+  if (dragPreviewNode) {
+    dragPreviewNode.remove();
+    dragPreviewNode = null;
+  }
 }
 
 async function moveEntryToFolder(entryId, targetFolderId) {
@@ -336,6 +341,7 @@ function renderFolders() {
     const row = document.createElement('div');
     row.className = `folder-row${state.activeView === 'folder' && state.folderId === folder.id ? ' active' : ''}`;
     row.dataset.folderId = folder.id;
+    row.dataset.dropLabel = t(state.language, 'dropHere');
     wireFolderDropTarget(row, folder);
 
     if (state.editingFolderId === folder.id) {
@@ -415,7 +421,8 @@ function renderSearchPanel() {
 
 function renderTagManagerPanel() {
   elements.tagManagerPanel.hidden = !state.tagManagerOpen;
-  elements.manageTags.textContent = state.tagManagerOpen ? t(state.language, 'cancel') : t(state.language, 'manageTags');
+  elements.manageTags.textContent = t(state.language, 'manageTags');
+  elements.manageTags.classList.toggle('active', state.tagManagerOpen);
 }
 
 function renderConfirmDialog() {
@@ -551,6 +558,19 @@ function openLink(entry) {
   }
 }
 
+function createDragPreview(title) {
+  if (dragPreviewNode) {
+    dragPreviewNode.remove();
+  }
+
+  const preview = document.createElement('div');
+  preview.className = 'drag-preview-pill';
+  preview.textContent = title;
+  document.body.appendChild(preview);
+  dragPreviewNode = preview;
+  return preview;
+}
+
 function beginEntryDrag(entryId, card, event) {
   state.draggingEntryId = entryId;
   document.body.classList.add('drag-active');
@@ -558,6 +578,8 @@ function beginEntryDrag(entryId, card, event) {
   if (event.dataTransfer) {
     event.dataTransfer.effectAllowed = 'move';
     event.dataTransfer.setData('text/plain', entryId);
+    const preview = createDragPreview(card.querySelector('.entry-title')?.textContent?.trim() || 'Link');
+    event.dataTransfer.setDragImage(preview, 26, 18);
   }
 }
 
@@ -772,8 +794,8 @@ function renderTagLibrary() {
 
       const renameButton = document.createElement('button');
       renameButton.type = 'button';
-      renameButton.className = 'micro-button';
-      renameButton.textContent = '✎';
+      renameButton.className = 'tag-action-button secondary-action';
+      renameButton.textContent = t(state.language, 'rename');
       renameButton.title = t(state.language, 'editEntryTitle');
       renameButton.addEventListener('click', () => {
         state.editingTagId = tag.id;
@@ -783,8 +805,8 @@ function renderTagLibrary() {
 
       const deleteButton = document.createElement('button');
       deleteButton.type = 'button';
-      deleteButton.className = 'micro-button';
-      deleteButton.textContent = '−';
+      deleteButton.className = 'tag-action-button danger-chip';
+      deleteButton.textContent = t(state.language, 'delete');
       deleteButton.title = t(state.language, 'deleteTagButton');
       deleteButton.addEventListener('click', () => {
         openConfirmDialog({

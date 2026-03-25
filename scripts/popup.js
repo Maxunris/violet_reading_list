@@ -119,6 +119,10 @@ function getEntries(library) {
     .filter(Boolean);
 }
 
+function getFolderEntryCount(folderId) {
+  return getEntries(state.library).filter(entry => entry.folderId === folderId).length;
+}
+
 function folderLabel(folderId) {
   if (folderId === DEFAULT_FOLDER_ID) {
     return t(state.language, 'inboxLabel');
@@ -364,8 +368,13 @@ function renderFolders() {
 
     const button = document.createElement('button');
     button.type = 'button';
-    button.className = 'sidebar-button';
-    button.textContent = folderLabel(folder.id);
+    button.className = 'sidebar-button folder-button';
+    const name = document.createElement('span');
+    name.textContent = folderLabel(folder.id);
+    const count = document.createElement('span');
+    count.className = 'folder-count';
+    count.textContent = String(getFolderEntryCount(folder.id));
+    button.append(name, count);
     button.addEventListener('click', async () => {
       setSelectedFolder(folder.id);
       await saveSelectedFolder(folder.id);

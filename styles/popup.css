@@ -287,6 +287,31 @@ button {
   padding: 0;
 }
 
+.folder-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+}
+
+.folder-count {
+  flex: none;
+  min-width: 24px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 11px;
+  line-height: 1;
+  text-align: center;
+}
+
+.folder-row.active .folder-count,
+.folder-row.drop-target .folder-count {
+  background: rgba(255, 255, 255, 0.28);
+}
+
 .micro-button {
   background: rgba(255, 255, 255, 0.12);
   color: white;

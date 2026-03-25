@@ -466,10 +466,19 @@ try {
 
   await record('popup starts from inbox on open', async () => {
     const popup = await preparePopup(createLibraryWithFolder());
-    const activeLabel = await popup.locator('#active-scope-label').textContent();
-    const inboxActive = await popup.locator('.folder-row.active .sidebar-button').first().textContent();
-    if (activeLabel?.trim() !== 'Inbox') throw new Error(`expected Inbox scope, got ${activeLabel}`);
-    if (inboxActive?.trim() !== 'Inbox') throw new Error(`expected Inbox folder active, got ${inboxActive}`);
+    const summary = await popup.evaluate(() => {
+      const inboxRow = document.querySelector('.folder-row[data-folder-id="folder_inbox"]');
+      return {
+        activeLabel: document.getElementById('active-scope-label')?.textContent?.trim() || '',
+        folderName: inboxRow?.querySelector('.folder-button span')?.textContent?.trim() || '',
+        folderCount: inboxRow?.querySelector('.folder-count')?.textContent?.trim() || '',
+        inboxActive: inboxRow?.classList.contains('active') || false
+      };
+    });
+    if (summary.activeLabel !== 'Inbox') throw new Error(`expected Inbox scope, got ${summary.activeLabel}`);
+    if (summary.folderName !== 'Inbox') throw new Error(`expected Inbox folder active, got ${summary.folderName}`);
+    if (summary.folderCount !== '1') throw new Error(`expected Inbox count 1, got ${summary.folderCount}`);
+    if (!summary.inboxActive) throw new Error('Inbox row is not marked active on open');
     await popup.close();
   });
 
@@ -720,13 +729,26 @@ try {
       folder.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer }));
       entry.dispatchEvent(new DragEvent('dragend', { bubbles: true, dataTransfer }));
     });
-    await popup.waitForTimeout(250);
+    await popup.waitForFunction(() => {
+      const inboxCount = document.querySelector('.folder-row[data-folder-id="folder_inbox"] .folder-count')?.textContent?.trim();
+      const targetRow = Array.from(document.querySelectorAll('.folder-row')).find(node => node.textContent.includes('Deep Research'));
+      const targetCount = targetRow?.querySelector('.folder-count')?.textContent?.trim();
+      return inboxCount === '0' && targetCount === '1';
+    });
+    const counts = await popup.evaluate(() => {
+      const inboxCount = document.querySelector('.folder-row[data-folder-id="folder_inbox"] .folder-count')?.textContent?.trim() || '';
+      const targetRow = Array.from(document.querySelectorAll('.folder-row')).find(node => node.textContent.includes('Deep Research'));
+      const targetCount = targetRow?.querySelector('.folder-count')?.textContent?.trim() || '';
+      return { inboxCount, targetCount };
+    });
     await popup.locator('.folder-row', { hasText: 'Deep Research' }).locator('.sidebar-button').click();
     await popup.waitForTimeout(150);
     const count = await popup.locator('.entry-card').count();
     const meta = await popup.locator('.entry-meta .badge').allTextContents();
     if (count !== 1) throw new Error(`drag move did not reassign entry: ${count}`);
     if (!meta.some(text => text.includes('Deep Research'))) throw new Error(`moved entry missing target folder badge: ${meta.join(',')}`);
+    if (counts.inboxCount !== '0') throw new Error(`expected Inbox count 0 after drag, got ${counts.inboxCount}`);
+    if (counts.targetCount !== '1') throw new Error(`expected target count 1 after drag, got ${counts.targetCount}`);
     await popup.close();
   });
 

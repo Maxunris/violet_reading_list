@@ -122,3 +122,16 @@ test('settings updates persist selected language', async () => {
   const library = await storage.loadLibrary();
   assert.equal(library.settings.language, 'ru');
 });
+
+test('folder and tag names are trimmed to UI-safe limits', async () => {
+  const expectedFolderName = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890'.slice(0, storage.MAX_FOLDER_NAME_LENGTH);
+  const expectedTagName = 'abcdefghijklmnopqrstuvwxyz1234567890'.slice(0, storage.MAX_TAG_NAME_LENGTH);
+
+  const withFolder = await storage.createFolder('ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890');
+  const folderId = withFolder.folderOrder.find(id => withFolder.foldersById[id]?.name === expectedFolderName);
+  assert.equal(withFolder.foldersById[folderId].name.length, storage.MAX_FOLDER_NAME_LENGTH);
+
+  const withTag = await storage.createTag('abcdefghijklmnopqrstuvwxyz1234567890');
+  const tagId = withTag.tagOrder.find(id => withTag.tagsById[id]?.name === expectedTagName);
+  assert.equal(withTag.tagsById[tagId].name.length, storage.MAX_TAG_NAME_LENGTH);
+});

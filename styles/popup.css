@@ -215,7 +215,7 @@ button {
 .view-row,
 .folder-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 36px 36px;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 8px;
   align-items: center;
   padding: 9px 12px;
@@ -290,8 +290,8 @@ button {
 .folder-button {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 10px;
+  align-items: start;
+  gap: 8px;
   width: 100%;
   min-width: 0;
 }
@@ -302,10 +302,17 @@ button {
   word-break: break-word;
 }
 
+.folder-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: stretch;
+}
+
 .folder-count {
   flex: none;
-  min-width: 24px;
-  padding: 3px 8px;
+  min-width: 20px;
+  padding: 3px 7px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.16);
   color: rgba(255, 255, 255, 0.9);
@@ -322,12 +329,15 @@ button {
 .micro-button {
   background: rgba(255, 255, 255, 0.12);
   color: white;
-  width: 36px;
-  min-width: 36px;
-  min-height: 36px;
+  width: 28px;
+  min-width: 28px;
+  min-height: 28px;
   padding: 0;
   display: grid;
   place-items: center;
+  font-size: 13px;
+  line-height: 1;
+  border-radius: 10px;
 }
 
 .micro-button:disabled {

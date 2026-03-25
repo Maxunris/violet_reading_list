@@ -2,6 +2,8 @@ import { DEFAULT_FOLDER_ID, QUICK_VIEWS } from './constants.js';
 import { extensionApi } from './browser-api.js';
 import { getAvailableLanguages, normalizeLanguage, t } from './i18n.js';
 import {
+  MAX_FOLDER_NAME_LENGTH,
+  MAX_TAG_NAME_LENGTH,
   createFolder,
   createTag,
   deleteEntry,
@@ -145,7 +147,7 @@ function setSelectedFolder(folderId) {
 }
 
 function normalizeTagName(value) {
-  return (value ?? '').trim().replace(/\s+/g, ' ').slice(0, 32);
+  return (value ?? '').trim().replace(/\s+/g, ' ').slice(0, MAX_TAG_NAME_LENGTH);
 }
 
 function resolveCanonicalTagName(rawName) {
@@ -352,6 +354,7 @@ function renderFolders() {
       row.classList.add('editing');
       row.appendChild(createInlineRenameForm({
         initialValue: folder.name,
+        maxLength: MAX_FOLDER_NAME_LENGTH,
         onSubmit: async nextName => {
           await renameFolder(folder.id, nextName).catch(showError);
           state.editingFolderId = null;
@@ -413,7 +416,11 @@ function renderFolders() {
       });
     });
 
-    row.append(button, renameButton, deleteButton);
+    const actions = document.createElement('div');
+    actions.className = 'folder-actions';
+    actions.append(renameButton, deleteButton);
+
+    row.append(button, actions);
     elements.folderList.appendChild(row);
   });
 }
@@ -785,6 +792,7 @@ function renderTagLibrary() {
         row.classList.add('editing');
         row.appendChild(createInlineRenameForm({
           initialValue: tag.name,
+          maxLength: MAX_TAG_NAME_LENGTH,
           onSubmit: async nextName => {
             await renameTag(tag.id, nextName).catch(showError);
             state.editingTagId = null;
@@ -867,13 +875,16 @@ function showError(error) {
   showStatus(translateErrorMessage(error.message || String(error)), 'error');
 }
 
-function createInlineRenameForm({ initialValue, onSubmit, onCancel }) {
+function createInlineRenameForm({ initialValue, maxLength, onSubmit, onCancel }) {
   const fragment = elements.inlineRenameTemplate.content.cloneNode(true);
   const form = fragment.querySelector('.inline-rename-form');
   const input = fragment.querySelector('.inline-rename-input');
   const cancelButton = fragment.querySelector('.inline-cancel-button');
 
   input.value = initialValue;
+  if (maxLength) {
+    input.maxLength = maxLength;
+  }
   window.setTimeout(() => {
     input.focus();
     input.select();
@@ -917,6 +928,10 @@ async function refreshContextMenus() {
     extensionApi.runtime.sendMessage({ type: 'VIOLET_REFRESH_CONTEXT_MENUS' }, () => resolve());
   });
 }
+
+elements.folderName.maxLength = MAX_FOLDER_NAME_LENGTH;
+elements.tagName.maxLength = MAX_TAG_NAME_LENGTH;
+elements.entryNewTag.maxLength = MAX_TAG_NAME_LENGTH;
 
 elements.folderForm.addEventListener('submit', async event => {
   event.preventDefault();

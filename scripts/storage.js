@@ -10,6 +10,9 @@ import { normalizeLanguage } from './i18n.js';
 
 let resolvedArea = null;
 
+export const MAX_TAG_NAME_LENGTH = 20;
+export const MAX_FOLDER_NAME_LENGTH = 24;
+
 function now() {
   return new Date().toISOString();
 }
@@ -145,11 +148,11 @@ export function buildFaviconUrl(url) {
 }
 
 function sanitizeTagName(name) {
-  return normalizeText(name).replace(/\s+/g, ' ').slice(0, 32);
+  return normalizeText(name).replace(/\s+/g, ' ').slice(0, MAX_TAG_NAME_LENGTH);
 }
 
 function sanitizeFolderName(name) {
-  return normalizeText(name).replace(/\s+/g, ' ').slice(0, 40);
+  return normalizeText(name).replace(/\s+/g, ' ').slice(0, MAX_FOLDER_NAME_LENGTH);
 }
 
 function folderNameExists(library, name, excludeFolderId = null) {

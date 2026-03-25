@@ -23,7 +23,7 @@
           </div>
           <p class="section-copy" data-i18n="foldersCopy">Create folders here and switch between collections without losing your place.</p>
           <form id="folder-form" class="inline-form">
-            <input id="folder-name" name="folderName" type="text" maxlength="40" placeholder="New folder name" autocomplete="off" data-i18n-placeholder="folderNamePlaceholder">
+            <input id="folder-name" name="folderName" type="text" maxlength="24" placeholder="New folder name" autocomplete="off" data-i18n-placeholder="folderNamePlaceholder">
             <button type="submit" data-i18n="addFolder">Add</button>
           </form>
           <div class="folder-list" id="folder-list"></div>
@@ -74,7 +74,7 @@
             <button id="close-tag-panel" class="icon-button" type="button" aria-label="Close tag manager" data-i18n-aria-label="closeTagManager">×</button>
           </div>
           <form id="tag-form" class="inline-form">
-            <input id="tag-name" type="text" maxlength="32" placeholder="New tag name" autocomplete="off" data-i18n-placeholder="tagNamePlaceholder">
+            <input id="tag-name" type="text" maxlength="20" placeholder="New tag name" autocomplete="off" data-i18n-placeholder="tagNamePlaceholder">
             <button type="submit" data-i18n="createTag">Create</button>
           </form>
           <label class="search-field">
@@ -131,7 +131,7 @@
                 <button id="entry-add-tag" class="secondary-action inline-tag-action" type="button" data-i18n="addExistingTag">Add existing</button>
               </div>
               <div class="entry-tag-row">
-                <input id="entry-new-tag" type="text" maxlength="32" placeholder="Create a new tag" data-i18n-placeholder="createNewTagPlaceholder">
+                <input id="entry-new-tag" type="text" maxlength="20" placeholder="Create a new tag" data-i18n-placeholder="createNewTagPlaceholder">
                 <button id="entry-create-tag" class="secondary-action inline-tag-action" type="button" data-i18n="createTagInline">Create tag</button>
               </div>
               <div id="entry-selected-tags" class="entry-selected-tags"></div>
